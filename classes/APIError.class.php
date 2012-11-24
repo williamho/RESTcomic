@@ -5,8 +5,9 @@ class APIError extends Exception {
 	/**
 	 * Custom exception class to handle multiple errors
 	 *
-	 * @param array $errors An array, expressed in JSON format as: 
-	 *	[{"code":123,"message":"hi"},{"code:":321,"message","bye"}]
+	 * @param string $message Exception message
+	 * @param int $errno API error number (see function getErrorById)
+	 * @param int $code Exception code
 	 */
 	public function __construct($message='', $errno=null, $code=0, 
 		Exception $previous=null) 
@@ -30,7 +31,7 @@ class APIError extends Exception {
 	 * Return an error array based on the error number
 	 *
 	 * @param int $id The error number
-	 * @return array {"code":123,"message":"hi"}
+	 * @return array Example, in JSON format: {"code":123,"message":"hi"}
 	 */
 	public static function getErrorById($id) {
 		$msg = '';
@@ -46,8 +47,8 @@ class APIError extends Exception {
 		case 1005: $msg = 'Username exceeds max length'; break;
 		case 1006: $msg = 'Invalid user group ID'; break;
 		case 1007: $msg = 'Email exceeds max length'; break;
-		case 1008: $msg = 'Website URL length exceeds max length'; break;
-		case 1009: $msg = 'A user with this login already exists'; break;
+		case 1008: $msg = 'A user with this login already exists'; break;
+		case 1009: $msg = 'User does not exist'; break;
 
 		// Group errors
 		case 1101: $msg = 'Invalid group ID'; break;
@@ -60,7 +61,11 @@ class APIError extends Exception {
 		case 1108: $msg = "A group with this name already exists"; break;
 
 		// Post errors
-		case 1104: $msg = 'Title cannot be null'; break;
+		case 1201: $msg = 'Invalid post ID'; break;
+		case 1202: $msg = 'Invalid user ID'; break;
+		case 1203: $msg = 'Title too long'; break;
+		case 1204: $msg = 'Invalid status value'; break;
+		case 1205: $msg = "Invalid date (try 'YYYY-MM-DD HH:MM:SS')"; break;
 		
 		// Default
 		default: $msg = 'Unknown error'; break;

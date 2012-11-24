@@ -9,6 +9,7 @@ class User {
 	public $name;
 	public $password;
 	public $group;
+	public $registered;
 	public $email;
 	public $website;
 
@@ -16,25 +17,30 @@ class User {
 		'login' => 24,
 		'name' => 32,
 		'password' => 60,
-		'email' => 255,
-		'website' => 255
+		'email' => 255
 	);
 
 	function __construct($id, $login, $name, $password, $group, 
-							$email=null, $website=null) {
+						$registered=null, $email=null, $website=null) 
+		{
 		$errors = new APIError('User errors');
 
 		if (!is_int($this->id = $id))
 			$errors->addError(1001); // invalid id
 		// If $id is nonzero, assume user info was retrieved from database.
-		else if ($id) 
+		else if ($id) {
 			$this->password = $password; 
+			$this->registered = $registered;
+		}
 		// If $id is 0, assume user doesn't exist and will be added
 		else {
 			// Hash the password
 			$this->password = self::$hasher->HashPassword($password);
 			if (strlen($this->password)<20)
 				$errors->addError(1002); // Failed to hash pw
+
+			// Ignore the registered field and set it to now
+			$this->registered = date('Y-m-d H:i:s');
 		}
 
 		// Check login
@@ -62,9 +68,7 @@ class User {
 		$this->email = $email;
 
 		// Set website
-		$this->website = urlencode($website);
-		if (!self::check_length($this->website,'website'))
-			$errors->addError(1008); // website url too long
+		$this->website = $website;
 
 		if (!$errors->isEmpty())
 			throw $errors;

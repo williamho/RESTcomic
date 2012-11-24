@@ -24,11 +24,11 @@ class Group {
 	 * Construct the group object
 	 * @param int $id The group's id
 	 * @param string $name Group name (alphanumeric and underscores only)
-	 * @param int mp 'make posts' permission
-	 * @param int ep 'edit posts' permission
-	 * @param int mc 'make comments' permission
-	 * @param int ec 'edit comments' permission
-	 * @param boolean a Is this an admin group?
+	 * @param int $mp 'make posts' permission
+	 * @param int $ep 'edit posts' permission
+	 * @param int $mc 'make comments' permission
+	 * @param int $ec 'edit comments' permission
+	 * @param boolean $a Is this an admin group?
 	 */
 	function __construct($id, $name, $mp, $ep, $mc, $ec, $a) {
 		$errors = new APIError('Group errors');
@@ -45,14 +45,14 @@ class Group {
 		$this->name = $name;
 
 		// Check permissions
-		if ($mp < 0 || $mp > self::PERM_MAKE_OK) // Invalid mp value
-			$errors->addError(1104); 
-		if ($ep < 0 || $ep > self::PERM_EDIT_ALL) // Invalid ep value
-			$errors->addError(1105);
-		if ($mc < 0 || $mc > self::PERM_MAKE_OK) // Invalid mc value
-			$errors->addError(1106);
-		if ($ec < 0 || $ec > self::PERM_EDIT_ALL) // Invalid ec value
-			$errors->addError(1107);
+		if (!is_int($mp) || $mp < 0 || $mp > self::PERM_MAKE_OK)
+			$errors->addError(1104); // Invalid mp value 
+		if (!is_int($ep) || $ep < 0 || $ep > self::PERM_EDIT_ALL)
+			$errors->addError(1105); // Invalid ep value
+		if (!is_int($mc) || $mc < 0 || $mc > self::PERM_MAKE_OK)
+			$errors->addError(1106); // Invalid mc value
+		if (!is_int($ec) || $ec < 0 || $ec > self::PERM_EDIT_ALL)
+			$errors->addError(1107); // Invalid ec value
 		$this->permissions = array(
 			'make_post' => $mp,
 			'edit_post' => $ep,

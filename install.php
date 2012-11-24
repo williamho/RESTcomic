@@ -38,8 +38,9 @@ $query = "CREATE TABLE {$config->tables['users']} (
 	login VARCHAR(".User::$limits['login'].") NOT NULL,
 	name VARCHAR(".User::$limits['name'].") NOT NULL,
 	password CHAR(".User::$limits['password'].") NOT NULL,
+	registered DATETIME NOT NULL,
 	email VARCHAR(".User::$limits['email']."),
-	website VARCHAR(".User::$limits['website']."),
+	website TEXT,
 	UNIQUE(login),
 	PRIMARY KEY(u_id),
 	FOREIGN KEY(g_id) REFERENCES groups(g_id) ON DELETE SET DEFAULT
@@ -99,14 +100,14 @@ $db->executeQuery($query);
  *=====================*/
 
 // Set up the anonymous group
-$anon_group = new Group(0,'Anonymous',
+$anonGroup = new Group(0,'Anonymous',
 	Group::PERM_MAKE_NONE,
 	Group::PERM_EDIT_NONE,
 	Group::PERM_MAKE_NONE,
 	Group::PERM_EDIT_NONE,
 	false
 );	
-$db->addGroup($anon_group);
+$db->addGroup($anonGroup);
 
 // Set the anonymous group to have group id 0
 $query = "UPDATE {$config->tables['groups']} SET g_id=0 WHERE g_id=1";
@@ -115,31 +116,32 @@ $query = "ALTER TABLE {$config->tables['groups']} AUTO_INCREMENT=1";
 $db->executeQuery($query);
 
 // Add anonymous user
-$anon_user = new User(0,'anonymous','Anonymous','',0,'','');
+$anon_user = new User(0,'anonymous','Anonymous','',0);
 $db->addUser($anon_user);
 
+// Set the anonymous user to have user id 0
+$query = "UPDATE {$config->tables['users']} SET u_id=0 WHERE u_id=1";
+$db->executeQuery($query);
+$query = "ALTER TABLE {$config->tables['users']} AUTO_INCREMENT=1";
+$db->executeQuery($query);
+
 // Set up admin group
-$admin_group = new Group(0,'Administrators',
+$adminGroup = new Group(0,'Administrators',
 	Group::PERM_MAKE_OK,
 	Group::PERM_EDIT_ALL,
 	Group::PERM_MAKE_OK,
 	Group::PERM_EDIT_ALL,
 	true
 );	
-$db->addGroup($admin_group);
+$db->addGroup($adminGroup);
 
 // Add admin user
-$admin_user = new User(0,'admin','admin','password',1,'','');
-$db->addUser($admin_user);
+$adminUser = new User(0,'admin','Administrator','password',1);
+$db->addUser($adminUser);
 
-/*
-try{
-$admin_user = new User(0,'admin','admin','password',1,'','');
-$db->addUser($admin_user);
-}
-catch(Exception $e) {
-print_r($e->getErrors());
-}*/
+// Add sample post
+$samplePost = new Post(0,0,'test title',0,true,'1000-01-01 00:00:00','http://google.com','hi this is the content of the post');
+$db->addPost($samplePost);
 
 ?>
 
