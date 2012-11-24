@@ -8,10 +8,14 @@ function __autoload($class_name) {
 // Connect to database
 $db = new DatabaseWrapper(SQL_SERVER,SQL_USERNAME,SQL_PASSWORD,SQL_DB);
 
+/*===============*
+ | Set up tables |
+ *===============*/
+
 // Drop existing tables
 foreach ($config->tables as $table_name) {
 	$query = "DROP TABLE IF EXISTS $table_name";
-	$db->execute_query($query,$db);
+	$db->executeQuery($query);
 }
 
 // Create tables (string lengths defined in class files)
@@ -26,7 +30,7 @@ $query = "CREATE TABLE {$config->tables['groups']} (
 	UNIQUE(name),
 	PRIMARY KEY(g_id)
 )";
-$db->execute_query($query,$db);
+$db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['users']} (
 	u_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -37,11 +41,10 @@ $query = "CREATE TABLE {$config->tables['users']} (
 	email VARCHAR(".User::$limits['email']."),
 	website VARCHAR(".User::$limits['website']."),
 	UNIQUE(login),
-	UNIQUE(email),
 	PRIMARY KEY(u_id),
 	FOREIGN KEY(g_id) REFERENCES groups(g_id) ON DELETE SET DEFAULT
 )";
-$db->execute_query($query,$db);
+$db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['posts']} (
 	p_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -55,7 +58,7 @@ $query = "CREATE TABLE {$config->tables['posts']} (
 	PRIMARY KEY(p_id),
 	FOREIGN KEY(u_id) REFERENCES users(u_id) ON DELETE SET DEFAULT
 )";
-$db->execute_query($query,$db);
+$db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['tags']} (
 	t_id INT UNSIGNED AUTO_INCREMENT,
@@ -63,7 +66,7 @@ $query = "CREATE TABLE {$config->tables['tags']} (
 	PRIMARY KEY(t_id),
 	UNIQUE(name)
 )";
-$db->execute_query($query,$db);
+$db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['post_tags']} (
 	p_id INT UNSIGNED NOT NULL,
@@ -72,7 +75,7 @@ $query = "CREATE TABLE {$config->tables['post_tags']} (
 	FOREIGN KEY(p_id) REFERENCES posts(p_id) ON DELETE CASCADE,
 	FOREIGN KEY(t_id) REFERENCES tags(t_id) ON DELETE CASCADE
 )";
-$db->execute_query($query,$db);
+$db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['comments']} (
 	c_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -89,23 +92,54 @@ $query = "CREATE TABLE {$config->tables['comments']} (
 	FOREIGN KEY(u_id) REFERENCES users(u_id) ON DELETE SET DEFAULT,
 	FOREIGN KEY(c_parent) REFERENCES comments(c_id) ON DELETE CASCADE
 )";
-$db->execute_query($query,$db);
+$db->executeQuery($query);
 
-try {
-	$group = new Group(0,'groupname',0,0,0,0,0);
-	$db->add_group($group);
-}
-catch (Exception $e) {
-	print_r($e->getErrors());
-}
+/*=====================*
+ | Set up default rows |
+ *=====================*/
 
-try {
-	$user = new User(0,'test','testname','testpw',1,'blahblahemail','');
-	$db->add_user($user);
+// Set up the anonymous group
+$anon_group = new Group(0,'Anonymous',
+	Group::PERM_MAKE_NONE,
+	Group::PERM_EDIT_NONE,
+	Group::PERM_MAKE_NONE,
+	Group::PERM_EDIT_NONE,
+	false
+);	
+$db->addGroup($anon_group);
+
+// Set the anonymous group to have group id 0
+$query = "UPDATE {$config->tables['groups']} SET g_id=0 WHERE g_id=1";
+$db->executeQuery($query);
+$query = "ALTER TABLE {$config->tables['groups']} AUTO_INCREMENT=1";
+$db->executeQuery($query);
+
+// Add anonymous user
+$anon_user = new User(0,'anonymous','Anonymous','',0,'','');
+$db->addUser($anon_user);
+
+// Set up admin group
+$admin_group = new Group(0,'Administrators',
+	Group::PERM_MAKE_OK,
+	Group::PERM_EDIT_ALL,
+	Group::PERM_MAKE_OK,
+	Group::PERM_EDIT_ALL,
+	true
+);	
+$db->addGroup($admin_group);
+
+// Add admin user
+$admin_user = new User(0,'admin','admin','password',1,'','');
+$db->addUser($admin_user);
+
+/*
+try{
+$admin_user = new User(0,'admin','admin','password',1,'','');
+$db->addUser($admin_user);
 }
-catch (Exception $e) {
-	print_r($e->getErrors());
-}
+catch(Exception $e) {
+print_r($e->getErrors());
+}*/
 
 ?>
 

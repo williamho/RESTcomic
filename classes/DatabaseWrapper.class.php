@@ -12,7 +12,7 @@ class DatabaseWrapper {
 		$this->db->close();
 	}
 
-	public function execute_query($query) {
+	public function executeQuery($query) {
 		$result = $this->db->query($query);
 		if(!$result)
 			die("Error running query [$this->db->error]");
@@ -23,11 +23,15 @@ class DatabaseWrapper {
 	 * Add user to database, if no errors encountered
 	 * @param User $user The user being added
 	 */
-	public function add_user(User $user) {
+	public function addUser(User $user) {
 		if (!($user instanceof User))
 			throw new Exception('Input argument is not a User object');
 		if (!empty($user->id))
 			throw new Exception('To add a user, id must be set to 0');
+
+		if ($this->getUserByLogin($user->login)) {
+			throw new APIError('User errors',1009); // User exists
+		}
 
 		$query = "INSERT INTO {$GLOBALS['config']->tables['users']} 
 			VALUES (NULL,?,?,?,?,?,?)";
@@ -45,10 +49,46 @@ class DatabaseWrapper {
 	}
 
 	/**
+	 * Returns an array of users based on the results of a query
+	 * @param mysqli_stmt $stmt A mysqli statement, before execute() called
+	 * @return array Array of User objects
+	 */
+	private function getUsersFromStatement(mysqli_stmt &$stmt) {
+		$stmt->execute();
+		$users = array();
+		$stmt->bind_result($id,$group,$login,$name,$password,$email,$website);
+
+		while ($row = $stmt->fetch()) {
+			$user = new User($id,$login,$name,$password,$group,
+								$email,$website);
+			array_push($users,$user);
+		}
+		return $users;
+	}
+
+	/**
+	 * Obtains user object based on user's login
+	 * @param string $login The user's login
+	 * @return User A User object containing the user's info
+	 */
+	public function getUserByLogin($login) {
+		$query = "SELECT * FROM users WHERE login = ?";
+		$stmt = $this->db->prepare($query);
+		$stmt->bind_param('s',$login);
+		
+		$users = $this->getUsersFromStatement($stmt);
+		$stmt->close();
+
+		if (empty($users))
+			return null;
+		return $users[0];
+	}
+
+	/**
 	 * Add group to database, if no errors encountered
 	 * @param Group $group The group being added
 	 */
-	public function add_group(Group $group) {
+	public function addGroup(Group $group) {
 		if (!($group instanceof Group))
 			throw new Exception('Input argument is not a Group object');
 		if (!empty($group->id))

@@ -8,12 +8,12 @@ class Group {
 	// Permissions
 	const PERM_MAKE_NONE = 0;	// Cannot make posts/comments
 	const PERM_MAKE_HIDDEN = 1; // Posts/comments hidden by default
-	const PERM_MAKE_OKAY = 2;	// No restriction to making posts/comments
+	const PERM_MAKE_OK = 2;	// No restriction to making posts/comments
 
 	const PERM_EDIT_NONE = 0; 	// Cannot edit any posts/comments
 	const PERM_EDIT_OWN = 1;	// Can edit own posts/comments
 	const PERM_EDIT_GROUP = 2;	// Can edit content made by group members
-	const PERM_EDIT_ANY = 3;	// Can edit anybody's content
+	const PERM_EDIT_ALL = 3;	// Can edit anybody's content
 
 	public $permissions;
 	public static $limits = array(
@@ -31,28 +31,28 @@ class Group {
 	 * @param boolean a Is this an admin group?
 	 */
 	function __construct($id, $name, $mp, $ep, $mc, $ec, $a) {
-		$errors = array();
+		$errors = new APIError('Group errors');
 		
 		if (!is_int($this->id = $id))
-			APIError::pushErrorArray($errors,1101); // Invalid id
+			$errors->addError(1101); // Invalid id
 		$tihs->id = $id;
 
 		// Check group name
 		if (!self::check_length($name,'name'))
-			APIError::pushErrorArray($errors,1102); // name too long
+			$errors->addError(1102); // name too long
 		if (!check_alphanum_underscore($name))
-			APIError::pushErrorArray($errors,1103); // name w/ invalid chars
+			$errors->addError(1103); // name w/ invalid chars
 		$this->name = $name;
 
 		// Check permissions
-		if ($mp < 0 || $mp > self::PERM_MAKE_OKAY) // Invalid mp value
-			APIError::pushErrorArray($errors,1104); 
-		if ($ep < 0 || $ep > self::PERM_EDIT_ANY) // Invalid ep value
-			APIError::pushErrorArray($errors,1105);
-		if ($mc < 0 || $mc > self::PERM_MAKE_OKAY) // Invalid mc value
-			APIError::pushErrorArray($errors,1106);
-		if ($ec < 0 || $ec > self::PERM_EDIT_ANY) // Invalid ec value
-			APIError::pushErrorArray($errors,1107);
+		if ($mp < 0 || $mp > self::PERM_MAKE_OK) // Invalid mp value
+			$errors->addError(1104); 
+		if ($ep < 0 || $ep > self::PERM_EDIT_ALL) // Invalid ep value
+			$errors->addError(1105);
+		if ($mc < 0 || $mc > self::PERM_MAKE_OK) // Invalid mc value
+			$errors->addError(1106);
+		if ($ec < 0 || $ec > self::PERM_EDIT_ALL) // Invalid ec value
+			$errors->addError(1107);
 		$this->permissions = array(
 			'make_post' => $mp,
 			'edit_post' => $ep,
@@ -61,8 +61,8 @@ class Group {
 			'admin' => (bool)$a
 		);
 
-		if (!empty($errors))
-			throw new APIError($errors,"Group errors");
+		if (!$errors->isEmpty())
+			throw $errors;
 	}
 
 	private static function check_length($string,$field) {

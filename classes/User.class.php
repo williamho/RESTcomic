@@ -22,59 +22,57 @@ class User {
 
 	function __construct($id, $login, $name, $password, $group, 
 							$email=null, $website=null) {
-		$errors = array();
+		$errors = new APIError('User errors');
 
 		if (!is_int($this->id = $id))
-			APIError::pushErrorArray($errors,1001); // Invalid id
+			$errors->addError(1001); // invalid id
 		// If $id is nonzero, assume user info was retrieved from database.
 		else if ($id) 
 			$this->password = $password; 
-		// If $id is 0, assume user doesn't exist and will be added to database.
+		// If $id is 0, assume user doesn't exist and will be added
 		else {
 			// Hash the password
 			$this->password = self::$hasher->HashPassword($password);
 			if (strlen($this->password)<20)
-				APIError::pushErrorArray($errors,1002); // Failed to hash pw
+				$errors->addError(1002); // Failed to hash pw
 		}
 
 		// Check login
 		if (!self::check_length($login,'login'))
-			APIError::pushErrorArray($errors,1003); // login too long
+			$errors->addError(1003); // login too long
 		if (!check_alphanum_underscore($login))
-			APIError::pushErrorArray($errors,1004); // login w/ invalid chars
-		$this->login = $login;
+			$errors->addError(1004); // login w/ invalid chars
+		$this->login = strtolower($login);
 
 		// Check name
 		if (!self::check_length($name,'name'))
-			APIError::pushErrorArray($errors,1005); // name too long
+			$errors->addError(1005); // name too long
 		$this->name = $name;
 
 		
 		// Set group
 		if (!is_int($group))
-			APIError::pushErrorArray($errors,1006); // invalid group
+			$errors->addError(1006); // invalid group
 		$this->group = $group;
 
 
 		// Set email
 		if (!self::check_length($email,'email'))
-			APIError::pushErrorArray($errors,1007); // email too long
+			$errors->addError(1007); // email too long
 		$this->email = $email;
 
 		// Set website
 		$this->website = urlencode($website);
 		if (!self::check_length($this->website,'website'))
-			APIError::pushErrorArray($errors,1008); // website url too long
+			$errors->addError(1008); // website url too long
 
-		if (!empty($errors))
-			throw new APIError($errors,"User errors");
+		if (!$errors->isEmpty())
+			throw $errors;
 	}
 	
 	private static function check_length($string,$field) {
 		return strlen($string) <= self::$limits[$field];
 	}
-
-
 }
 User::$hasher = new PasswordHash(8, false);
 ?>
