@@ -99,27 +99,27 @@ $db->executeQuery($query);
  | Set up default rows |
  *=====================*/
 
-// Set up the anonymous group
-$anonGroup = new Group(0,'Anonymous',
+// Set up the unregistered group
+$unregGroup = new Group(0,'Unregistered',
 	Group::PERM_MAKE_NONE,
 	Group::PERM_EDIT_NONE,
 	Group::PERM_MAKE_NONE,
 	Group::PERM_EDIT_NONE,
 	false
 );	
-$db->addGroup($anonGroup);
+$db->addGroup($unregGroup);
 
-// Set the anonymous group to have group id 0
+// Set the unregistered group to have group id 0
 $query = "UPDATE {$config->tables['groups']} SET g_id=0 WHERE g_id=1";
 $db->executeQuery($query);
 $query = "ALTER TABLE {$config->tables['groups']} AUTO_INCREMENT=1";
 $db->executeQuery($query);
 
-// Add anonymous user
-$anon_user = new User(0,'anonymous','Anonymous','',0);
-$db->addUser($anon_user);
+// Add unregistered user
+$unregUser = new User(0,'unregistered','Unregistered','',0);
+$db->addUser($unregUser);
 
-// Set the anonymous user to have user id 0
+// Set the unregistered user to have user id 0
 $query = "UPDATE {$config->tables['users']} SET u_id=0 WHERE u_id=1";
 $db->executeQuery($query);
 $query = "ALTER TABLE {$config->tables['users']} AUTO_INCREMENT=1";
@@ -138,6 +138,16 @@ $db->addGroup($adminGroup);
 // Add admin user
 $adminUser = new User(0,'admin','Administrator','password',1);
 $db->addUser($adminUser);
+
+// Set up regular users group
+$regGroup = new Group(0,'Users',
+	Group::PERM_MAKE_NONE,
+	Group::PERM_EDIT_NONE,
+	Group::PERM_MAKE_OK,
+	Group::PERM_EDIT_OWN,
+	true
+);	
+$db->addGroup($regGroup);
 
 // Add sample post
 $samplePost = new Post(0,0,'test title',0,true,'1000-01-01 00:00:00','http://google.com','hi this is the content of the post');
