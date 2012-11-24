@@ -19,8 +19,9 @@ $query = "CREATE TABLE {$config->tables['groups']} (
 	g_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	name VARCHAR(".Group::$limits['name'].") NOT NULL,
 	admin_perm BOOLEAN DEFAULT FALSE NOT NULL,
-	post_perm TINYINT NOT NULL,
+	make_post_perm TINYINT NOT NULL,
 	edit_post_perm TINYINT NOT NULL,
+	make_comment_perm TINYINT NOT NULL,
 	edit_comment_perm TINYINT NOT NULL,
 	UNIQUE(name),
 	PRIMARY KEY(g_id)
@@ -91,7 +92,15 @@ $query = "CREATE TABLE {$config->tables['comments']} (
 $db->execute_query($query,$db);
 
 try {
-	$user = new User(0,'tes%#%t','testname','testpw',1,'blahblahemail','');
+	$group = new Group(0,'groupname',0,0,0,0,0);
+	$db->add_group($group);
+}
+catch (Exception $e) {
+	print_r($e->getErrors());
+}
+
+try {
+	$user = new User(0,'test','testname','testpw',1,'blahblahemail','');
 	$db->add_user($user);
 }
 catch (Exception $e) {

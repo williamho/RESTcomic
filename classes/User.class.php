@@ -20,7 +20,8 @@ class User {
 		'website' => 255
 	);
 
-	function __construct($id, $login, $name, $password, $group, $email=null, $website=null) {
+	function __construct($id, $login, $name, $password, $group, 
+							$email=null, $website=null) {
 		$errors = array();
 
 		if (!is_int($this->id = $id))
