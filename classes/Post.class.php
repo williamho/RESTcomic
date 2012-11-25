@@ -3,6 +3,7 @@ class Post {
 	public $post_id;
 	public $user_id;
 	public $title;
+	public $title_slug;
 	public $status;
 	public $commentable;
 	public $timestamp;
@@ -17,11 +18,12 @@ class Post {
 		'title' => 255
 	);
 
-	public function setValues($post_id, $user_id, $title, $status,
+	public function setValues($post_id, $user_id, $title, $title_slug, $status,
 			$commentable, $timestamp, $image_url, $content ) {
 		$this->post_id = $post_id;
 		$this->user_id = $user_id;
 		$this->title = $title;
+		$this->title_slug = $title_slug;
 		$this->status = $status;
 		$this->commentable = $commentable;
 		$this->timestamp = $timestamp;
@@ -39,16 +41,23 @@ class Post {
 		// Check user ID
 		if (!is_int($this->user_id))
 			$errors->addError(1001); // invalid user id
-
+	
 		// Check title
 		if (!self::checkLength($this->title,'title'))
 			$errors->addError(1202); // title too long
+
+		if ($this->title_slug) 
+			$this->title_slug = makeSlug($this->title_slug);
+		else
+			$this->title_slug = makeSlug($this->title);
+		if (!self::checkLength($this->title_slug,'title'))
+			$errors->addError(1208); // Title slug too long
 
 		// Check status
 		if (!is_int($this->status) || 
 			$this->status<0 || $this->status>self::STATUS_HIDDEN)
 			$errors->addError(1203); // Invalid status
-		
+
 		// Set commentable 
 		$this->commentable = (bool)$this->commentable;
 	

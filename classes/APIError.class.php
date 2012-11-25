@@ -63,7 +63,7 @@ class APIError extends Exception {
 
 		// Post errors
 		case 1201: $msg = 'Invalid post ID'; break;
-		case 1202: $msg = 'Title too long'; break;
+		case 1202: $msg = 'Title exceeds max length'; break;
 		case 1203: $msg = 'Invalid status value'; break;
 		case 1204: $msg = "Invalid date (try 'YYYY-MM-DD HH:MM:SS')"; break;
 		case 1205: $msg = 'Post does not exist'; break;
@@ -71,6 +71,8 @@ class APIError extends Exception {
 							break;
 		case 1207: $msg = 'User does not have permission to edit this post';
 							break;
+		case 1208: $msg = 'Title slug exceeds max length'; break;
+		case 1209: $msg = 'Post already exists with this title slug'; break;
 
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;
@@ -81,6 +83,12 @@ class APIError extends Exception {
 							break;
 		case 1306: $msg = 'User does not have permission to edit this
 							comment'; break;
+
+		// Tag errors
+		case 1401: $msg = 'Invalid comment ID'; break;
+		case 1402: $msg = 'Tag name exceeds max length'; break;
+		case 1403: $msg = 'Tag name slug exceeds max length'; break;
+		case 1404: $msg = 'Tag with this name already exists'; break;
 		
 		// Default
 		default: $msg = 'Unknown error'; break;

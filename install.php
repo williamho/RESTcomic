@@ -51,11 +51,13 @@ $query = "CREATE TABLE {$config->tables['posts']} (
 	post_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	user_id INT UNSIGNED NOT NULL,
 	title VARCHAR(".Post::$limits['title'].") NOT NULL,
+	title_slug VARCHAR(".Post::$limits['title'].") NOT NULL,
 	status TINYINT NOT NULL,
 	commentable BOOLEAN DEFAULT TRUE NOT NULL,
 	timestamp DATETIME NOT NULL,
 	image_url TEXT,
 	content TEXT,
+	UNIQUE(title_slug),
 	PRIMARY KEY(post_id),
 	FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE SET DEFAULT
 )";
@@ -64,8 +66,9 @@ $db->executeQuery($query);
 $query = "CREATE TABLE {$config->tables['tags']} (
 	tag_id INT UNSIGNED AUTO_INCREMENT,
 	name VARCHAR(".Tag::$limits['name'].") NOT NULL,
-	PRIMARY KEY(tag_id),
-	UNIQUE(name)
+	name_slug VARCHAR(".Tag::$limits['name'].") NOT NULL,
+	UNIQUE(name),
+	PRIMARY KEY(tag_id)
 )";
 $db->executeQuery($query);
 
@@ -146,7 +149,7 @@ $db->insertObjectIntoTable($regGroup);
 
 // Add sample post
 $samplePost = new Post;
-$samplePost->setValues(0,1,'title',0,true,'now','img','text');
+$samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img','text');
 $db->insertObjectIntoTable($samplePost);
 
 // Add sample comment
@@ -154,6 +157,10 @@ $sampleComment = new Comment;
 $sampleComment->setValues(0,1,1,null,'now',null,true,'hi','a name');
 $db->insertObjectIntoTable($sampleComment);
 
+// Add sample tag
+$sampleTag = new Tag;
+$sampleTag->setValues(0,'tag name',null);
+$db->insertObjectIntoTable($sampleTag);
 
 // Test
 try {
