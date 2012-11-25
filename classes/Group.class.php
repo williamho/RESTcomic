@@ -2,8 +2,13 @@
 require_once 'includes/checks.php';
 
 class Group {
-	public $id;
+	public $group_id;
 	public $name;
+	public $admin_perm;
+	public $make_post_perm;
+	public $edit_post_perm;
+	public $make_comment_perm;
+	public $edit_comment_perm;
 
 	// Permissions
 	const PERM_MAKE_NONE = 0;	// Cannot make posts/comments
@@ -15,36 +20,38 @@ class Group {
 	const PERM_EDIT_GROUP = 2;	// Can edit content made by group members
 	const PERM_EDIT_ALL = 3;	// Can edit anybody's content
 
-	public $permissions;
 	public static $limits = array(
 		'name' => 64
 	);
 
-	/**
-	 * Construct the group object
-	 * @param int $id The group's id
-	 * @param string $name Group name (alphanumeric and underscores only)
-	 * @param int $mp 'make posts' permission
-	 * @param int $ep 'edit posts' permission
-	 * @param int $mc 'make comments' permission
-	 * @param int $ec 'edit comments' permission
-	 * @param boolean $a Is this an admin group?
-	 */
-	function __construct($id, $name, $mp, $ep, $mc, $ec, $a) {
+	public function setValues($group_id, $name, $a, $mp, $ep, $mc, $ec) {
+		$this->group_id = $group_id;
+		$this->name = $name;
+		$this->admin_perm = $a;
+		$this->make_post_perm = $mp;
+		$this->edit_post_perm = $ep;
+		$this->make_comment_perm = $mc;
+		$this->edit_comment_perm = $ec;
+	}
+
+	public function getErrors() {
 		$errors = new APIError('Group errors');
 		
-		if (!is_int($this->id = $id))
+		if (!is_int($this->group_id))
 			$errors->addError(1101); // Invalid id
-		$this->id = $id;
 
 		// Check group name
-		if (!self::checkLength($name,'name'))
+		if (!self::checkLength($this->name,'name'))
 			$errors->addError(1102); // name too long
-		if (!checkAlphanumUnderscore($name))
+		if (!checkAlphanumUnderscore($this->name))
 			$errors->addError(1103); // name w/ invalid chars
-		$this->name = $name;
 
 		// Check permissions
+		$mp = $this->make_post_perm;
+		$ep = $this->edit_post_perm;
+		$mc = $this->make_comment_perm;
+		$ec = $this->edit_comment_perm;
+
 		if (!is_int($mp) || $mp < 0 || $mp > self::PERM_MAKE_OK)
 			$errors->addError(1104); // Invalid mp value 
 		if (!is_int($ep) || $ep < 0 || $ep > self::PERM_EDIT_ALL)
@@ -53,16 +60,11 @@ class Group {
 			$errors->addError(1106); // Invalid mc value
 		if (!is_int($ec) || $ec < 0 || $ec > self::PERM_EDIT_ALL)
 			$errors->addError(1107); // Invalid ec value
-		$this->permissions = array(
-			'make_post' => $mp,
-			'edit_post' => $ep,
-			'make_comment' => $mc,
-			'edit_comment' => $ec, 
-			'admin' => (bool)$a
-		);
+		$this->admin_perm = (bool)$this->admin_perm;
 
 		if (!$errors->isEmpty())
-			throw $errors;
+			return $errors;
+		return null;
 	}
 
 	private static function checkLength($string,$field) {

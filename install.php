@@ -20,7 +20,7 @@ foreach ($config->tables as $table_name) {
 
 // Create tables (string lengths defined in class files)
 $query = "CREATE TABLE {$config->tables['groups']} (
-	g_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	group_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	name VARCHAR(".Group::$limits['name'].") NOT NULL,
 	admin_perm BOOLEAN DEFAULT FALSE NOT NULL,
 	make_post_perm TINYINT NOT NULL,
@@ -28,134 +28,135 @@ $query = "CREATE TABLE {$config->tables['groups']} (
 	make_comment_perm TINYINT NOT NULL,
 	edit_comment_perm TINYINT NOT NULL,
 	UNIQUE(name),
-	PRIMARY KEY(g_id)
+	PRIMARY KEY(group_id)
 )";
 $db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['users']} (
-	u_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-	g_id INT UNSIGNED NOT NULL,
+	user_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	group_id INT UNSIGNED NOT NULL,
 	login VARCHAR(".User::$limits['login'].") NOT NULL,
 	name VARCHAR(".User::$limits['name'].") NOT NULL,
 	password CHAR(".User::$limits['password'].") NOT NULL,
-	registered DATETIME NOT NULL,
+	date_registered DATETIME NOT NULL,
 	email VARCHAR(".User::$limits['email']."),
 	website TEXT,
 	UNIQUE(login),
-	PRIMARY KEY(u_id),
-	FOREIGN KEY(g_id) REFERENCES groups(g_id) ON DELETE SET DEFAULT
+	PRIMARY KEY(user_id),
+	FOREIGN KEY(group_id) REFERENCES groups(group_id) ON DELETE SET DEFAULT
 )";
 $db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['posts']} (
-	p_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-	u_id INT UNSIGNED NOT NULL,
+	post_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	user_id INT UNSIGNED NOT NULL,
 	title VARCHAR(".Post::$limits['title'].") NOT NULL,
 	status TINYINT NOT NULL,
 	commentable BOOLEAN DEFAULT TRUE NOT NULL,
-	post_date DATETIME NOT NULL,
+	timestamp DATETIME NOT NULL,
 	image_url TEXT,
 	content TEXT,
-	PRIMARY KEY(p_id),
-	FOREIGN KEY(u_id) REFERENCES users(u_id) ON DELETE SET DEFAULT
+	PRIMARY KEY(post_id),
+	FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE SET DEFAULT
 )";
 $db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['tags']} (
-	t_id INT UNSIGNED AUTO_INCREMENT,
+	tag_id INT UNSIGNED AUTO_INCREMENT,
 	name VARCHAR(".Tag::$limits['name'].") NOT NULL,
-	PRIMARY KEY(t_id),
+	PRIMARY KEY(tag_id),
 	UNIQUE(name)
 )";
 $db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['post_tags']} (
-	p_id INT UNSIGNED NOT NULL,
-	t_id INT UNSIGNED NOT NULL,
-	PRIMARY KEY(p_id,t_id),
-	FOREIGN KEY(p_id) REFERENCES posts(p_id) ON DELETE CASCADE,
-	FOREIGN KEY(t_id) REFERENCES tags(t_id) ON DELETE CASCADE
+	post_id INT UNSIGNED NOT NULL,
+	tag_id INT UNSIGNED NOT NULL,
+	PRIMARY KEY(post_id,tag_id),
+	FOREIGN KEY(post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+	FOREIGN KEY(tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE
 )";
 $db->executeQuery($query);
 
 $query = "CREATE TABLE {$config->tables['comments']} (
-	c_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-	p_id INT UNSIGNED NOT NULL,
-	u_id INT UNSIGNED,
-	c_parent INT UNSIGNED, 
-	comment_date DATETIME NOT NULL,
+	comment_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+	post_id INT UNSIGNED NOT NULL,
+	user_id INT UNSIGNED,
+	parent_comment_id INT UNSIGNED, 
+	timestamp DATETIME NOT NULL,
 	ip VARCHAR(".Comment::$limits['ip'].") NOT NULL,
 	visible BOOLEAN DEFAULT TRUE NOT NULL,
 	content TEXT NOT NULL,
 	name VARCHAR(".Comment::$limits['name']."),
-	PRIMARY KEY(c_id),
-	FOREIGN KEY(p_id) REFERENCES posts(p_id) ON DELETE CASCADE,
-	FOREIGN KEY(u_id) REFERENCES users(u_id) ON DELETE SET DEFAULT,
-	FOREIGN KEY(c_parent) REFERENCES comments(c_id) ON DELETE CASCADE
+	PRIMARY KEY(comment_id),
+	FOREIGN KEY(post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+	FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE SET DEFAULT,
+	FOREIGN KEY(parent_comment_id) REFERENCES comments(comment_id) 
+		ON DELETE CASCADE
 )";
 $db->executeQuery($query);
 
 /*=====================*
  | Set up default rows |
  *=====================*/
-
-// Set up the unregistered group
-$unregGroup = new Group(0,'Unregistered',
-	Group::PERM_MAKE_NONE,
-	Group::PERM_EDIT_NONE,
-	Group::PERM_MAKE_NONE,
-	Group::PERM_EDIT_NONE,
-	false
-);	
-$db->addGroup($unregGroup);
+// Create unregistered group
+$unregGroup = new Group;
+$unregGroup->setValues(0,'Unregistered',false,
+	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
+	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE);
+$db->insertObjectIntoTable($unregGroup);
 
 // Set the unregistered group to have group id 0
-$query = "UPDATE {$config->tables['groups']} SET g_id=0 WHERE g_id=1";
+$query = "UPDATE {$config->tables['groups']} SET group_id=0 WHERE group_id=1";
 $db->executeQuery($query);
 $query = "ALTER TABLE {$config->tables['groups']} AUTO_INCREMENT=1";
 $db->executeQuery($query);
 
 // Add unregistered user
-$unregUser = new User(0,'unregistered','Unregistered','',0);
-$db->addUser($unregUser);
+$unregUser = new User;
+$unregUser->setValues(0,0,'unregistered','Unregistered',null);
+$unregUser->hashPassword();
+$db->insertObjectIntoTable($unregUser);
 
 // Set the unregistered user to have user id 0
-$query = "UPDATE {$config->tables['users']} SET u_id=0 WHERE u_id=1";
+$query = "UPDATE {$config->tables['users']} SET user_id=0 WHERE user_id=1";
 $db->executeQuery($query);
 $query = "ALTER TABLE {$config->tables['users']} AUTO_INCREMENT=1";
 $db->executeQuery($query);
 
-// Set up admin group
-$adminGroup = new Group(0,'Administrators',
-	Group::PERM_MAKE_OK,
-	Group::PERM_EDIT_ALL,
-	Group::PERM_MAKE_OK,
-	Group::PERM_EDIT_ALL,
-	true
-);	
-$db->addGroup($adminGroup);
+// Create admin group
+$adminGroup = new Group();
+$adminGroup->setValues(0,'Administrators',true,
+	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL, 
+	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL);
+$db->insertObjectIntoTable($adminGroup);
 
 // Add admin user
-$adminUser = new User(0,'admin','Administrator','password',1);
-$db->addUser($adminUser);
+$adminUser = new User;
+$adminUser->setValues(0,0,'admin','Administrator','password');
+$adminUser->hashPassword();
+$db->insertObjectIntoTable($adminUser);
 
-// Set up regular users group
-$regGroup = new Group(0,'Users',
-	Group::PERM_MAKE_NONE,
-	Group::PERM_EDIT_NONE,
-	Group::PERM_MAKE_OK,
-	Group::PERM_EDIT_OWN,
-	true
-);	
-$db->addGroup($regGroup);
+// Create admin group
+$regGroup = new Group();
+$regGroup->setValues(0,'Users',true,
+	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
+	Group::PERM_MAKE_OK, Group::PERM_EDIT_OWN);
+$db->insertObjectIntoTable($regGroup);
 
 // Add sample post
-$samplePost = new Post(0,1,'test title"\'$*$^@#)(%&!$',0,true,'http://google.com','hi this is the content of the post','now');
-$db->addPost($samplePost);
+$samplePost = new Post;
+$samplePost->setValues(0,1,'title',0,true,'now','img','text');
+$db->insertObjectIntoTable($samplePost);
 
 // Add sample comment
-$sampleComment = new Comment(0,1,0,true,'post content');
-$db->addComment($sampleComment);
+$sampleComment = new Comment;
+$sampleComment->setValues(0,1,1,null,'now',null,true,'hi','a name');
+try {
+$db->insertObjectIntoTable($sampleComment);
+} catch(Exception $e) {
+echo $e->getErrors();
+}
 
 ?>
 

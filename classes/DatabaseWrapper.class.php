@@ -3,20 +3,84 @@ class DatabaseWrapper {
 	private $db;
 
 	public function __construct($server, $username, $password, $database) {
-		$this->db = new mysqli($server, $username, $password, $database);
-		if($this->db->connect_errno > 0)
-			die("Unable to connect to database [$this->db->connect_error]");
+		try {
+			$this->db = new PDO("mysql:host=$server;dbname=$database",
+							$username,$password);
+			$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		}
+		catch (PDOException $e) {
+			die($e->getMessage());
+		}
 	}
 
 	function __destruct() {
-		$this->db->close();
+		$this->db = null;
 	}
 
 	public function executeQuery($query) {
 		$result = $this->db->query($query);
-		if(!$result)
-			die("Error running query [$this->db->error]");
 		return $result;
+	}
+
+	/**
+	 * Inserts a row into the specified table based on the fields of the
+	 * object. Assumes object's fields are named the same as the columns
+	 * in the table.
+	 */
+	public function insertObjectIntoTable($obj) {
+		$primary = null;
+		switch (get_class($obj)) {
+		case 'Group': 
+			$primary = $obj->group_id; 
+			$table = 'groups';
+			break;
+		case 'User': 
+			$primary = $obj->user_id; 
+			$table = 'users';
+			break; 
+		case 'Post': 
+			$primary = $obj->post_id; 
+			$table = 'posts';
+			break; 
+		case 'Tag': 
+			$primary = $obj->tag_id; 
+			$table = 'tags';
+			break; 
+		case 'Comment': 
+			$primary = $obj->comment_id; 
+			$table = 'comments';
+			break; 
+		}
+		$table = $GLOBALS['config']->tables[$table];
+
+		if ($primary) {
+			throw new Exception('To insert a new object into the 
+						table, the primary key must be null');
+		}
+
+		if ($e = $obj->getErrors()) 
+			throw $e;
+
+		$fields = get_object_vars($obj);
+		$columns = array();
+		$binds = array();
+		$values = array();
+		foreach($fields as $column=>$value) {
+			array_push($columns,$column);
+			array_push($binds,":$column");
+			array_push($values,$value);
+		}
+		$queryColumns = implode(',',$columns);
+		$queryBinds = implode(',',$binds);
+
+		$query = "INSERT INTO $table ($queryColumns)
+			VALUES ($queryBinds)";
+
+		$stmt = $this->db->prepare($query);
+		foreach($fields as $column=>$value) 
+			$stmt->bindValue(":$column",$value);
+
+		$stmt->execute();
 	}
 
 	/*==============*
@@ -36,7 +100,7 @@ class DatabaseWrapper {
 		$query = "INSERT INTO {$GLOBALS['config']->tables['users']} 
 			VALUES (NULL,?,?,?,?,?,?,?)";
 		$stmt = $this->db->prepare($query);
-		$stmt->bind_param('issssss',
+		$params = array (
 			$user->group,
 			$user->login,
 			$user->name,
@@ -45,27 +109,7 @@ class DatabaseWrapper {
 			$user->email,
 			$user->website
 		);
-		$stmt->execute();
-		$stmt->close();
-	}
-
-	/**
-	 * Returns an array of users based on the results of a query
-	 * @param mysqli_stmt $stmt A mysqli statement, before execute() called
-	 * @return array Array of User objects
-	 */
-	private function getUsersFromStatement(mysqli_stmt &$stmt) {
-		$stmt->execute();
-		$users = array();
-		$stmt->bind_result($id,$group,$login,$name,$password,
-								$registered,$email,$website);
-
-		while ($row = $stmt->fetch()) {
-			$user = new User($id,$login,$name,$password,$group,
-								$registered,$email,$website);
-			array_push($users,$user);
-		}
-		return $users;
+		$stmt->execute($params);
 	}
 
 	/**
@@ -78,10 +122,11 @@ class DatabaseWrapper {
 			FROM {$GLOBALS['config']->tables['users']} 
 			WHERE login = ?";
 		$stmt = $this->db->prepare($query);
-		$stmt->bind_param('s',$login);
-		
-		$users = $this->getUsersFromStatement($stmt);
-		$stmt->close();
+		$stmt->execute(array($login));
+
+		$users = $stmt->fetchAll(PDO::FETCH_CLASS,"User");
+
+		print_r($users);
 
 		if (empty($users))
 			return null;
@@ -96,12 +141,12 @@ class DatabaseWrapper {
 	public function getUserById($id) {
 		$query = "SELECT * 
 			FROM {$GLOBALS['config']->tables['users']} 
-			WHERE u_id = ?";
+			WHERE user_id = ?";
 		$stmt = $this->db->prepare($query);
-		$stmt->bind_param('i',$id);
+		$stmt->execute(array($id));
 		
-		$users = $this->getUsersFromStatement($stmt);
-		$stmt->close();
+		$users = $stmt->fetchAll(PDO::FETCH_CLASS,"User");
+		print_r($users);
 
 		if (empty($users))
 			return null;
@@ -120,18 +165,12 @@ class DatabaseWrapper {
 			throw new Exception('To add a group, id must be set to 0');
 
 		$query = "INSERT INTO {$GLOBALS['config']->tables['groups']} 
-			VALUES (NULL,?,?,?,?,?,?)";
+			VALUES (NULL,:group_id,:name,:admin_perm,
+				:make_post_perm,:edit_post_perm,
+				:make_comment_perm, :edit_comment_perm)";
 		$stmt = $this->db->prepare($query);
-		$stmt->bind_param('siiiii',
-			$group->name,
-			$group->permissions['admin'],
-			$group->permissions['make_post'],
-			$group->permissions['edit_post'],
-			$group->permissions['make_comment'],
-			$group->permissions['edit_comment']
-		);
-		$stmt->execute();
-		$stmt->close();
+		$params = get_object_vars($group);
+		$stmt->execute($params);
 	}
 
 	/**
@@ -188,7 +227,7 @@ class DatabaseWrapper {
 		$query = "INSERT INTO {$GLOBALS['config']->tables['posts']} 
 			VALUES (NULL,?,?,?,?,?,?,?)";
 		$stmt = $this->db->prepare($query);
-		$stmt->bind_param('ssiisss',
+		$params = array(
 			$post->author,
 			$post->title,
 			$post->status,
@@ -197,8 +236,7 @@ class DatabaseWrapper {
 			$post->image,
 			$post->content
 		);
-		$stmt->execute();
-		$stmt->close();
+		$stmt->execute($params);
 	}	
 
 	/**
@@ -252,8 +290,11 @@ class DatabaseWrapper {
 		$errors = new APIError('Comment errors');
 		if (!empty($comment->id))
 			throw new Exception('To add a comment, id must be set to 0');
-
-		if (!$this->getUserById($comment->author)) 
+		
+		$author = $this->getUserById($comment->author);
+		if ($author) {
+		}
+		else
 			$errors->addError(1009); // User doesn't exist
 
 		if (!$this->getPostById($comment->post)) 

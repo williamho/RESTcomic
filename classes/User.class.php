@@ -4,12 +4,12 @@ require_once 'includes/PasswordHash.php';
 
 class User {
 	public static $hasher;
-	public $id;
+	public $user_id;
+	public $group_id;
 	public $login;
 	public $name;
 	public $password;
-	public $group;
-	public $registered;
+	public $date_registered;
 	public $email;
 	public $website;
 
@@ -20,60 +20,61 @@ class User {
 		'email' => 255
 	);
 
-	function __construct($id, $login, $name, $password, $group, 
-						$registered=null, $email=null, $website=null) 
-		{
+	public function hashPassword() {
+		$this->password = self::$hasher->HashPassword($this->password);
+		if (strlen($this->password)<20)
+			throw new APIError('User errors',1002);
+	}
+
+	public function setValues($user_id, $group_id, $login, $name, $password,
+			$date_registered='now', $email='', $website='') 
+	{
+		$this->user_id = $user_id;
+		$this->group_id = $group_id;
+		$this->login = $login;
+		$this->name = $name;
+		$this->password = $password;
+		$this->date_registered = $date_registered;
+		$this->email = $email;
+		$this->website = $website;
+	}
+
+	public function getErrors() {
 		$errors = new APIError('User errors');
 
-		if (!is_int($this->id = $id))
+		// Check ID
+		if (!is_int($this->user_id))
 			$errors->addError(1001); // invalid id
-		// If $id is nonzero, assume user info was retrieved from database.
-		else if ($id) {
-			$this->password = $password; 
-			$this->registered = $registered;
-		}
-		// If $id is 0, assume user doesn't exist and will be added
-		else {
-			// Hash the password
-			$this->password = self::$hasher->HashPassword($password);
-			if (strlen($this->password)<20)
-				$errors->addError(1002); // Failed to hash pw
-
-			// Ignore the registered field and set it to now
-			$this->registered = date(Config::timeFormat);
-		}
-
+		
 		// Check login
-		if (!self::checkLength($login,'login'))
+		if (!self::checkLength($this->login,'login'))
 			$errors->addError(1003); // login too long
-		if (!checkAlphanumUnderscore($login))
+		if (!checkAlphanumUnderscore($this->login))
 			$errors->addError(1004); // login w/ invalid chars
-		$this->login = strtolower($login);
+		$this->login = strtolower($this->login);
+
+		// Check registration date
+		if (!($this->date_registered = 
+				convertDatetime($this->date_registered)))
+			$errors->addError(1204); // Invalid date
 
 		// Check name
-		if (!self::checkLength($name,'name'))
+		if (!self::checkLength($this->name,'name'))
 			$errors->addError(1005); // name too long
-		$this->name = $name;
-
 		
-		// Set group
-		if (!is_int($group))
+		// Check group
+		if (!is_int($this->group_id))
 			$errors->addError(1006); // invalid group
-		$this->group = $group;
 
-
-		// Set email
-		if (!self::checkLength($email,'email'))
+		// Check email
+		if (!self::checkLength($this->email,'email'))
 			$errors->addError(1007); // email too long
-		$this->email = $email;
-
-		// Set website
-		$this->website = $website;
 
 		if (!$errors->isEmpty())
-			throw $errors;
+			return $errors;
+		return null;
 	}
-	
+
 	private static function checkLength($string,$field) {
 		return strlen($string) <= self::$limits[$field];
 	}

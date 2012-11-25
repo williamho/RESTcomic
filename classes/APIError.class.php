@@ -70,7 +70,7 @@ class APIError extends Exception {
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;
 		case 1302: $msg = 'Name exceeds max length'; break;
-		case 1303: $msg = 'Invalid parent ID'; break;
+		case 1303: $msg = 'Invalid parent comment ID'; break;
 		case 1304: $msg = 'Parent comment does not exist'; break;
 		
 		// Default
