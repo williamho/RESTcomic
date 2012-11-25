@@ -46,13 +46,9 @@ class Post {
 		// Check date
 		if ($id)	// If $id specified, post was obtained from database
 			$this->date = $date;
-		else if (!$date) { // If date unspecified, set date to now
-			$this->date = date('Y-m-d H:i:s');
-		}
-		else if ($this->date = date_create_from_format($date,'Y-m-d H:i:s')) {
+		else if (!($this->date = convertDatetime($date)))
 			$errors->addError(1205); // Invalid date
-		}
-
+				
 		// Set image URL
 		$this->image = $image; // URL should be sanitized before displayed
 

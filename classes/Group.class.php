@@ -40,7 +40,7 @@ class Group {
 		// Check group name
 		if (!self::check_length($name,'name'))
 			$errors->addError(1102); // name too long
-		if (!check_alphanum_underscore($name))
+		if (!checkAlphanumUnderscore($name))
 			$errors->addError(1103); // name w/ invalid chars
 		$this->name = $name;
 

@@ -150,7 +150,7 @@ $regGroup = new Group(0,'Users',
 $db->addGroup($regGroup);
 
 // Add sample post
-$samplePost = new Post(0,0,'test title',0,true,'1000-01-01 00:00:00','http://google.com','hi this is the content of the post');
+$samplePost = new Post(0,1,'test title"\'$*$^@#)(%&!$',0,true,null,'http://google.com','hi this is the content of the post');
 $db->addPost($samplePost);
 
 ?>

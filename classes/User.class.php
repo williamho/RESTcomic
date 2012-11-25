@@ -40,13 +40,13 @@ class User {
 				$errors->addError(1002); // Failed to hash pw
 
 			// Ignore the registered field and set it to now
-			$this->registered = date('Y-m-d H:i:s');
+			$this->registered = date(Config::timeFormat);
 		}
 
 		// Check login
 		if (!self::check_length($login,'login'))
 			$errors->addError(1003); // login too long
-		if (!check_alphanum_underscore($login))
+		if (!checkAlphanumUnderscore($login))
 			$errors->addError(1004); // login w/ invalid chars
 		$this->login = strtolower($login);
 

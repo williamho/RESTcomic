@@ -8,6 +8,7 @@
 			'tags'=>'tags',
 			'post_tags'=>'post_tags'
 		);
+		const timeFormat = 'Y-m-d H:i:s';
 
 		function __construct($prefix) {
 			foreach($this->tables as &$table_name) 
