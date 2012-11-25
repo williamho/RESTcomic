@@ -44,14 +44,14 @@ class User {
 		}
 
 		// Check login
-		if (!self::check_length($login,'login'))
+		if (!self::checkLength($login,'login'))
 			$errors->addError(1003); // login too long
 		if (!checkAlphanumUnderscore($login))
 			$errors->addError(1004); // login w/ invalid chars
 		$this->login = strtolower($login);
 
 		// Check name
-		if (!self::check_length($name,'name'))
+		if (!self::checkLength($name,'name'))
 			$errors->addError(1005); // name too long
 		$this->name = $name;
 
@@ -63,7 +63,7 @@ class User {
 
 
 		// Set email
-		if (!self::check_length($email,'email'))
+		if (!self::checkLength($email,'email'))
 			$errors->addError(1007); // email too long
 		$this->email = $email;
 
@@ -74,7 +74,7 @@ class User {
 			throw $errors;
 	}
 	
-	private static function check_length($string,$field) {
+	private static function checkLength($string,$field) {
 		return strlen($string) <= self::$limits[$field];
 	}
 }

@@ -199,7 +199,130 @@ class DatabaseWrapper {
 		);
 		$stmt->execute();
 		$stmt->close();
+	}	
+
+	/**
+	 * Returns an array of posts based on the results of a query
+	 * @param mysqli_stmt $stmt A mysqli statement, before execute() called
+	 * @return array Array of Post objects
+	 */
+	private function getPostsFromStatement(mysqli_stmt &$stmt) {
+		$stmt->execute();
+		$posts = array();
+		$stmt->bind_result($id,$author,$title,$status,$commentable,
+							$date,$image,$content);
+
+		while ($row = $stmt->fetch()) {
+			$post = new Post($id,$author,$title,$status,$commentable,
+								$image,$content,$date);
+			array_push($posts,$post);
+		}
+		return $posts;
 	}
+
+	/**
+	 * Obtains Post object based on post ID
+	 * @param int $id The post's ID
+	 * @return Post A post object
+	 */
+	public function getPostById($id) {
+		$query = "SELECT * 
+			FROM {$GLOBALS['config']->tables['posts']} 
+			WHERE p_id = ?";
+		$stmt = $this->db->prepare($query);
+		$stmt->bind_param('i',$id);
+		
+		$posts = $this->getPostsFromStatement($stmt);
+		$stmt->close();
+
+		if (empty($posts))
+			return null;
+		return $posts[0];
+	}
+
+
+	/*=================*
+	 | Comment-related |
+	 *=================*/
+	/**
+	 * Add comment to database, if no errors encountered
+	 * @param Comment $comment The comment being added
+	 */
+	public function addComment($comment) {
+		$errors = new APIError('Comment errors');
+		if (!empty($comment->id))
+			throw new Exception('To add a comment, id must be set to 0');
+
+		if (!$this->getUserById($comment->author)) 
+			$errors->addError(1009); // User doesn't exist
+
+		if (!$this->getPostById($comment->post)) 
+			$errors->addError(1205); // Post doesn't exist
+
+		if ($comment->parent && !$this->getCommentById($comment->parent)) 
+			$errors->addError(1304); // Parent comment doesn't exist
+
+		if (!$errors->isEmpty())
+			throw $errors;
+
+		$query = "INSERT INTO {$GLOBALS['config']->tables['comments']} 
+			VALUES (NULL,?,?,?,?,?,?,?,?)";
+		$stmt = $this->db->prepare($query);
+		$stmt->bind_param('iiississ',
+			$comment->post,
+			$comment->author,
+			$comment->parent,
+			$comment->date,
+			$comment->ip,
+			$comment->visible,
+			$comment->content,
+			$comment->name
+		);
+		$stmt->execute();
+		$stmt->close();
+
+	}
+
+	/**
+	 * Returns an array of comments based on the results of a query
+	 * @param mysqli_stmt $stmt A mysqli statement, before execute() called
+	 * @return array Array of Comment objects
+	 */
+	private function getCommentsFromStatement(mysqli_stmt &$stmt) {
+		$stmt->execute();
+		$comments = array();
+		$stmt->bind_result($id,$post,$author,$parent,$date,$ip,
+							$visible,$content,$name);
+
+		while ($row = $stmt->fetch()) {
+			$comment = new Comment($id,$post,$author,$visible,$content,
+									$name,$parent,$date,$ip);
+			array_push($comments,$comment);
+		}
+		return $comments;
+	}
+
+	/**
+	 * Obtains comment object based on comment ID
+	 * @param int $id The comment's ID
+	 * @return Comment A comment object
+	 */
+	public function getCommentById($id) {
+		$query = "SELECT * 
+			FROM {$GLOBALS['config']->tables['comments']} 
+			WHERE c_id = ?";
+		$stmt = $this->db->prepare($query);
+		$stmt->bind_param('i',$id);
+		
+		$comments = $this->getCommentsFromStatement($stmt);
+		$stmt->close();
+
+		if (empty($comments))
+			return null;
+		return $comments[0];
+	}
+
+
 }
 
 ?>

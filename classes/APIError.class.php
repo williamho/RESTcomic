@@ -62,10 +62,16 @@ class APIError extends Exception {
 
 		// Post errors
 		case 1201: $msg = 'Invalid post ID'; break;
-		case 1202: $msg = 'Invalid user ID'; break;
-		case 1203: $msg = 'Title too long'; break;
-		case 1204: $msg = 'Invalid status value'; break;
-		case 1205: $msg = "Invalid date (try 'YYYY-MM-DD HH:MM:SS')"; break;
+		case 1202: $msg = 'Title too long'; break;
+		case 1203: $msg = 'Invalid status value'; break;
+		case 1204: $msg = "Invalid date (try 'YYYY-MM-DD HH:MM:SS')"; break;
+		case 1205: $msg = 'Post does not exist'; break;
+
+		// Comment errors
+		case 1301: $msg = 'Invalid comment ID'; break;
+		case 1302: $msg = 'Name exceeds max length'; break;
+		case 1303: $msg = 'Invalid parent ID'; break;
+		case 1304: $msg = 'Parent comment does not exist'; break;
 		
 		// Default
 		default: $msg = 'Unknown error'; break;

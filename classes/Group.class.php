@@ -35,10 +35,10 @@ class Group {
 		
 		if (!is_int($this->id = $id))
 			$errors->addError(1101); // Invalid id
-		$tihs->id = $id;
+		$this->id = $id;
 
 		// Check group name
-		if (!self::check_length($name,'name'))
+		if (!self::checkLength($name,'name'))
 			$errors->addError(1102); // name too long
 		if (!checkAlphanumUnderscore($name))
 			$errors->addError(1103); // name w/ invalid chars
@@ -65,7 +65,7 @@ class Group {
 			throw $errors;
 	}
 
-	private static function check_length($string,$field) {
+	private static function checkLength($string,$field) {
 		return strlen($string) <= self::$limits[$field];
 	}
 }

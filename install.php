@@ -84,7 +84,7 @@ $query = "CREATE TABLE {$config->tables['comments']} (
 	u_id INT UNSIGNED,
 	c_parent INT UNSIGNED, 
 	comment_date DATETIME NOT NULL,
-	ip BINARY(".Comment::$limits['ip'].") NOT NULL,
+	ip VARCHAR(".Comment::$limits['ip'].") NOT NULL,
 	visible BOOLEAN DEFAULT TRUE NOT NULL,
 	content TEXT NOT NULL,
 	name VARCHAR(".Comment::$limits['name']."),
@@ -150,8 +150,12 @@ $regGroup = new Group(0,'Users',
 $db->addGroup($regGroup);
 
 // Add sample post
-$samplePost = new Post(0,1,'test title"\'$*$^@#)(%&!$',0,true,null,'http://google.com','hi this is the content of the post');
+$samplePost = new Post(0,1,'test title"\'$*$^@#)(%&!$',0,true,'http://google.com','hi this is the content of the post','now');
 $db->addPost($samplePost);
+
+// Add sample comment
+$sampleComment = new Comment(0,1,0,true,'post content');
+$db->addComment($sampleComment);
 
 ?>
 

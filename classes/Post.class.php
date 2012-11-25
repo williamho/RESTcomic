@@ -18,9 +18,9 @@ class Post {
 	);
 
 	function __construct($id, $author, $title, $status, $commentable,
-			$date, $image, $content) 
+			$image, $content, $date=null)
 	{
-		$errors = new APIError('User errors');
+		$errors = new APIError('Post errors');
 
 		// Check post ID
 		if (!is_int($this->id = $id))
@@ -28,16 +28,16 @@ class Post {
 
 		// Check user ID
 		if (!is_int($this->author = $author))
-			$errors->addError(1202); // invalid user id
+			$errors->addError(1001); // invalid user id
 
 		// Check title
-		if (!self::check_length($title,'title'))
-			$errors->addError(1203); // title too long
+		if (!self::checkLength($title,'title'))
+			$errors->addError(1202); // title too long
 		$this->title = $title;
 
 		// Check status
 		if (!is_int($status) || $status<0 || $status>self::STATUS_HIDDEN)
-			$errors->addError(1204); // Invalid status
+			$errors->addError(1203); // Invalid status
 		$this->status = $status;
 		
 		// Set commentable 
@@ -47,19 +47,19 @@ class Post {
 		if ($id)	// If $id specified, post was obtained from database
 			$this->date = $date;
 		else if (!($this->date = convertDatetime($date)))
-			$errors->addError(1205); // Invalid date
+			$errors->addError(1204); // Invalid date
 				
 		// Set image URL
 		$this->image = $image; // URL should be sanitized before displayed
 
 		// Set body text of the post
-		$this->content = $content; // Assume markdown format for content
+		$this->content = (string)$content; // Assume markdown format
 
 		if (!$errors->isEmpty())
 			throw $errors;
 	}
 
-	private static function check_length($string,$field) {
+	private static function checkLength($string,$field) {
 		return strlen($string) <= self::$limits[$field];
 	}
 }
