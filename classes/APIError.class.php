@@ -59,6 +59,7 @@ class APIError extends Exception {
 		case 1106: $msg = "Invalid 'make comments' permissions value"; break;
 		case 1107: $msg = "Invalid 'edit comments' permissions value"; break;
 		case 1108: $msg = "A group with this name already exists"; break;
+		case 1109: $msg = "Group does not exist"; break;
 
 		// Post errors
 		case 1201: $msg = 'Invalid post ID'; break;
@@ -66,12 +67,20 @@ class APIError extends Exception {
 		case 1203: $msg = 'Invalid status value'; break;
 		case 1204: $msg = "Invalid date (try 'YYYY-MM-DD HH:MM:SS')"; break;
 		case 1205: $msg = 'Post does not exist'; break;
+		case 1206: $msg = 'User does not have permission to make posts'; 
+							break;
+		case 1207: $msg = 'User does not have permission to edit this post';
+							break;
 
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;
 		case 1302: $msg = 'Name exceeds max length'; break;
 		case 1303: $msg = 'Invalid parent comment ID'; break;
 		case 1304: $msg = 'Parent comment does not exist'; break;
+		case 1305: $msg = 'User does not have permission to make comments';
+							break;
+		case 1306: $msg = 'User does not have permission to edit this
+							comment'; break;
 		
 		// Default
 		default: $msg = 'Unknown error'; break;

@@ -133,11 +133,11 @@ $db->insertObjectIntoTable($adminGroup);
 
 // Add admin user
 $adminUser = new User;
-$adminUser->setValues(0,0,'admin','Administrator','password');
+$adminUser->setValues(0,1,'admin','Administrator','password');
 $adminUser->hashPassword();
 $db->insertObjectIntoTable($adminUser);
 
-// Create admin group
+// Create regular group
 $regGroup = new Group();
 $regGroup->setValues(0,'Users',true,
 	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
@@ -152,10 +152,17 @@ $db->insertObjectIntoTable($samplePost);
 // Add sample comment
 $sampleComment = new Comment;
 $sampleComment->setValues(0,1,1,null,'now',null,true,'hi','a name');
-try {
 $db->insertObjectIntoTable($sampleComment);
-} catch(Exception $e) {
-echo $e->getErrors();
+
+
+// Test
+try {
+	$unregUser = new User;
+	$unregUser->setValues(0,1,'name','Unregistered',null);
+	$unregUser->hashPassword();
+	$db->insertObjectIntoTable($unregUser);
+} catch(APIError $e) {
+	echo json_encode($e->getErrors());
 }
 
 ?>
