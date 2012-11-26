@@ -36,26 +36,26 @@ class DatabaseWrapper {
 		$primary = null;
 		switch (get_class($obj)) {
 		case 'Group': 
-			$primary = $obj->group_id; 
+			$primary = 'group_id';
 			$table = 'groups';
 			break;
 		case 'User': 
-			$primary = $obj->user_id; 
+			$primary = 'user_id';
 			$table = 'users';
 			$this->validateUser($obj);
 			break; 
 		case 'Post': 
-			$primary = $obj->post_id; 
+			$primary = 'post_id';
 			$table = 'posts';
 			$this->validatePost($obj);
 			break; 
 		case 'Tag': 
-			$primary = $obj->tag_id; 
+			$primary = 'tag_id';
 			$table = 'tags';
 			$this->validateTag($obj);
 			break; 
 		case 'Comment': 
-			$primary = $obj->comment_id; 
+			$primary = 'comment_id';
 			$table = 'comments';
 			$this->validateComment($obj);
 			break; 
@@ -64,7 +64,7 @@ class DatabaseWrapper {
 		}
 		$table = $GLOBALS['config']->tables[$table];
 
-		if ($primary) {
+		if ($obj->$primary) {
 			throw new Exception('To insert a new object into the 
 						table, the primary key must be null');
 		}
@@ -90,6 +90,7 @@ class DatabaseWrapper {
 			$stmt->bindValue(":$column",$value);
 
 		$stmt->execute();
+		return $this->db->lastInsertId($primary);
 	}
 
 	private function rowExists($table,$column,$value) {
@@ -105,7 +106,7 @@ class DatabaseWrapper {
 	private function validateTag(Tag $tag) {
 		// Check if tag name already exists
 		if ($this->rowExists('tags','name',$tag->name))
-			throw new APIError('User errors',1404); // Group doesn't exist
+			throw new APIError('Tag errors',1403); // Tag name already exists
 		return null;
 	}
 
@@ -220,6 +221,54 @@ class DatabaseWrapper {
 		if (!$errors->isEmpty())
 			throw $errors;
 		return null;
+	}
+
+	function addTagToPost($tag_name,$post_id) {
+		// Make new tag object based on tag name
+		$tag = new Tag;
+		$tag->setValues(0,$tag_name);
+		$tag->getErrors();
+
+		// Check that the post actually exists
+		if (!$this->rowExists('posts','post_id',$post_id))
+			throw new APIError('Post Tag errors',1205); // Post doesn't exist
+
+		// Get ID of existing tag with the same name, if it exists
+		$query = "SELECT tag_id FROM {$GLOBALS['config']->tables['tags']}
+		          WHERE name = :tag_name";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':tag_name',$tag->name);
+		$stmt->execute();
+		$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+		if ($result) 
+			$tag->tag_id = $result[0]['tag_id'];
+		else
+			$tag->tag_id = $this->insertObjectIntoTable($tag);
+
+		// Check that tag is not already assigned to the post
+		$query = "SELECT 1 FROM {$GLOBALS['config']->tables['post_tags']}
+		          WHERE post_id = :post_id AND tag_id = :tag_id";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':post_id',$post_id);
+		$stmt->bindParam(':tag_id',$tag->tag_id);
+		$stmt->execute();
+		
+		// Tag has already been assigned to post
+		if ($stmt->rowCount()) 
+			return;
+		
+		$query = "INSERT INTO {$GLOBALS['config']->tables['post_tags']} 
+					(post_id,tag_id) VALUES (:post_id,:tag_id)";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':post_id',$post_id);
+		$stmt->bindParam(':tag_id',$tag->tag_id);
+		$stmt->execute();
+	}
+
+	public function addTagsToPost($tags, $post_id) {
+		foreach ($tags as $tag) 
+			$this->addTagToPost($tag,$post_id);
 	}
 }
 

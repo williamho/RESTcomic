@@ -87,8 +87,7 @@ class APIError extends Exception {
 		// Tag errors
 		case 1401: $msg = 'Invalid comment ID'; break;
 		case 1402: $msg = 'Tag name exceeds max length'; break;
-		case 1403: $msg = 'Tag name slug exceeds max length'; break;
-		case 1404: $msg = 'Tag with this name already exists'; break;
+		case 1403: $msg = 'Tag with this name already exists'; break;
 		
 		// Default
 		default: $msg = 'Unknown error'; break;

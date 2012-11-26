@@ -66,7 +66,6 @@ $db->executeQuery($query);
 $query = "CREATE TABLE {$config->tables['tags']} (
 	tag_id INT UNSIGNED AUTO_INCREMENT,
 	name VARCHAR(".Tag::$limits['name'].") NOT NULL,
-	name_slug VARCHAR(".Tag::$limits['name'].") NOT NULL,
 	UNIQUE(name),
 	PRIMARY KEY(tag_id)
 )";
@@ -171,6 +170,8 @@ try {
 } catch(APIError $e) {
 	echo json_encode($e->getErrors());
 }
+
+$db->addTagsToPost(array('test','test2','test3'),1);
 
 ?>
 
