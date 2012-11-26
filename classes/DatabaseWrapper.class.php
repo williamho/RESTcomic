@@ -25,6 +25,8 @@ class DatabaseWrapper {
 	/**
 	 * Inserts a row into the specified table based on the fields of the
 	 * object. The affected table depends on the class of the input object.
+	 * @param mixed $obj The object to add. 
+	 *                   Valid classes: Group, User, Post, Tag, or Comment
 	 */
 	public function insertObjectIntoTable($obj) {
 		// Check for errors
@@ -223,6 +225,11 @@ class DatabaseWrapper {
 		return null;
 	}
 
+	/**
+	 * Add a single tag to a post with the given ID
+	 * @param string $tag_name The name of the tag
+	 * @param int $post_id The ID of the post to add the tag to
+	 */
 	function addTagToPost($tag_name,$post_id) {
 		// Make new tag object based on tag name
 		$tag = new Tag;
@@ -266,6 +273,11 @@ class DatabaseWrapper {
 		$stmt->execute();
 	}
 
+	/**
+	 * Add array of tags to a post with the given ID
+	 * @param array $tags Array of tag names
+	 * @param int $post_id The ID of the post to add the tags to
+	 */
 	public function addTagsToPost($tags, $post_id) {
 		foreach ($tags as $tag) 
 			$this->addTagToPost($tag,$post_id);

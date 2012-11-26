@@ -93,7 +93,7 @@ class APIError extends Exception {
 		default: $msg = 'Unknown error'; break;
 		}
 
-		$error = array('code' => $id, 'message' => $msg);
+		$error = array('code' => $id, 'msg' => $msg);
 		return $error;
 	}
 
