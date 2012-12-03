@@ -80,5 +80,4 @@ class User {
 	}
 }
 User::$hasher = new PasswordHash(8, false);
-?>
 

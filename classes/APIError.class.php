@@ -58,8 +58,9 @@ class APIError extends Exception {
 		case 1105: $msg = "Invalid 'edit posts' permissions value"; break;
 		case 1106: $msg = "Invalid 'make comments' permissions value"; break;
 		case 1107: $msg = "Invalid 'edit comments' permissions value"; break;
-		case 1108: $msg = "A group with this name already exists"; break;
-		case 1109: $msg = "Group does not exist"; break;
+		case 1108: $msg = 'A group with this name already exists'; break;
+		case 1109: $msg = 'Group does not exist'; break;
+		case 1110: $msg = 'Invalid group color'; break;
 
 		// Post errors
 		case 1201: $msg = 'Invalid post ID'; break;
@@ -102,4 +103,3 @@ class APIError extends Exception {
 	}
 }
 
-?>

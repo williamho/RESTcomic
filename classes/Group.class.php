@@ -4,6 +4,7 @@ require_once 'includes/checks.php';
 class Group {
 	public $group_id;
 	public $name;
+	public $color;
 	public $admin_perm;
 	public $make_post_perm;
 	public $edit_post_perm;
@@ -24,9 +25,12 @@ class Group {
 		'name' => 64
 	);
 
-	public function setValues($group_id, $name, $a, $mp, $ep, $mc, $ec) {
+	public function setValues($group_id, $name, $color, 
+								$a, $mp, $ep, $mc, $ec) 
+	{
 		$this->group_id = $group_id;
 		$this->name = $name;
+		$this->color = $color;
 		$this->admin_perm = $a;
 		$this->make_post_perm = $mp;
 		$this->edit_post_perm = $ep;
@@ -45,6 +49,12 @@ class Group {
 			$errors->addError(1102); // name too long
 		if (!checkAlphanumUnderscore($this->name))
 			$errors->addError(1103); // name w/ invalid chars
+
+		// Check color
+		if (is_string($this->color)) 
+			$this->color = hexdec($this->color);
+		else if (!is_int($this->color))
+			$errors->addError(1110); // Invalid color
 
 		// Check permissions
 		$mp = $this->make_post_perm;
@@ -72,4 +82,3 @@ class Group {
 	}
 }
 
-?>

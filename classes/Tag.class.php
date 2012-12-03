@@ -1,4 +1,6 @@
 <?php
+defined('API_PATH') or die('No direct script access.');
+
 class Tag {
 	public $tag_id;
 	public $name;
@@ -32,6 +34,4 @@ class Tag {
 		return strlen($string) <= self::$limits[$field];
 	}
 }
-
-?>
 

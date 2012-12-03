@@ -1,12 +1,13 @@
 <?php
 require_once 'includes/config.php';
 
+define('ADMIN_COLOR','#ff0000');
+define('UNREG_COLOR','#000000');
+define('REG_COLOR','#000000');
+
 function __autoload($class_name) {
 	require_once "classes/$class_name.class.php";
 }
-
-// Connect to database
-$db = new DatabaseWrapper(SQL_SERVER,SQL_USERNAME,SQL_PASSWORD,SQL_DB);
 
 /*===============*
  | Set up tables |
@@ -22,6 +23,7 @@ foreach ($config->tables as $table_name) {
 $query = "CREATE TABLE {$config->tables['groups']} (
 	group_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	name VARCHAR(".Group::$limits['name'].") NOT NULL,
+	color MEDIUMINT UNSIGNED DEFAULT 0 NOT NULL,
 	admin_perm BOOLEAN DEFAULT FALSE NOT NULL,
 	make_post_perm TINYINT NOT NULL,
 	edit_post_perm TINYINT NOT NULL,
@@ -103,7 +105,7 @@ $db->executeQuery($query);
  *=====================*/
 // Create unregistered group
 $unregGroup = new Group;
-$unregGroup->setValues(0,'Unregistered',false,
+$unregGroup->setValues(0,'Unregistered',UNREG_COLOR,false,
 	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
 	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE);
 $db->insertObjectIntoTable($unregGroup);
@@ -128,7 +130,7 @@ $db->executeQuery($query);
 
 // Create admin group
 $adminGroup = new Group();
-$adminGroup->setValues(0,'Administrators',true,
+$adminGroup->setValues(0,'Administrators',ADMIN_COLOR,true,
 	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL, 
 	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL);
 $db->insertObjectIntoTable($adminGroup);
@@ -141,7 +143,7 @@ $db->insertObjectIntoTable($adminUser);
 
 // Create regular group
 $regGroup = new Group();
-$regGroup->setValues(0,'Users',true,
+$regGroup->setValues(0,'Users',REG_COLOR,true,
 	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
 	Group::PERM_MAKE_OK, Group::PERM_EDIT_OWN);
 $db->insertObjectIntoTable($regGroup);
@@ -173,5 +175,15 @@ try {
 
 $db->addTagsToPost(array('test','test2','test3'),1);
 
-?>
+
+//$g = APIGroupsFactory::getGroupsByIds(array(0,3,1));
+//$result = new APIResult($g);
+//echo json_encode($result);
+
+//$u = APIUsersFactory::getUsersByIds(array(1,3,2),true);
+//echo json_encode($u);
+
+$p = APIPostsFactory::getPostsByIds(1);
+$result = new APIResult($p);
+echo json_encode($result);
 

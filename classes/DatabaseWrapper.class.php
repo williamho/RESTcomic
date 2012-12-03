@@ -1,4 +1,6 @@
 <?php
+defined('API_PATH') or die('No direct script access.');
+
 class DatabaseWrapper {
 	private $db;
 
@@ -22,6 +24,10 @@ class DatabaseWrapper {
 		return $result;
 	}
 
+	public function prepare($query) {
+		return $this->db->prepare($query);
+	}
+
 	/**
 	 * Inserts a row into the specified table based on the fields of the
 	 * object. The affected table depends on the class of the input object.
@@ -33,6 +39,7 @@ class DatabaseWrapper {
 		if ($e = $obj->getErrors()) 
 			throw $e;
 
+		global $config;
 		// Check if primary key is null, like it should be
 		// Also set the table name based on the object class
 		$primary = null;
@@ -63,8 +70,9 @@ class DatabaseWrapper {
 			break; 
 		default:
 			throw new Exception('Invalid object');
+			break;
 		}
-		$table = $GLOBALS['config']->tables[$table];
+		$table = $config->tables[$table];
 
 		if ($obj->$primary) {
 			throw new Exception('To insert a new object into the 
@@ -95,8 +103,60 @@ class DatabaseWrapper {
 		return $this->db->lastInsertId($primary);
 	}
 
+	private function getPrimary($table) {
+		switch (strtolower($table)) {
+		case 'groups': return 'group_id';
+		case 'users': return 'user_id';
+		case 'posts': return 'post_id';
+		case 'tags': return 'tag_id'; 
+		case 'comments': return 'comment_id'; 
+		default: throw new Exception("Invalid table name $table"); 
+		}
+	}
+
+	public function getObjectsFromTableByIds($table,$ids) {
+		$ids = (array)$ids;
+
+		$primary = $this->getPrimary($table);
+		foreach($ids as $index=>$id)
+			$ids[$index] = (int)$id;
+
+		$idString = implode(',',$ids);
+		$query = "SELECT * FROM $table WHERE $primary IN ($idString)";
+		$stmt = $this->db->prepare($query);
+		$stmt->execute();
+
+		$results = $stmt->fetchAll(PDO::FETCH_OBJ);
+		return $results;
+	}
+
+	// This function name is really long...
+	public function getObjectsFromTableByIdsAndForeign($table1,$ids,
+														$table2,$col) 
+		{
+		$ids = (array)$ids;
+		$primary = $this->getPrimary($table1);
+		foreach($ids as $index=>$id)
+			$ids[$index] = (int)$id;
+
+		$idString = implode(',',$ids);
+		$query = "
+			SELECT t1.$primary, t2.*
+			FROM $table1 t1, $table2 t2
+			WHERE t1.$primary IN ($idString) AND t1.$col = t2.$col
+		";
+		$stmt = $this->db->prepare($query);
+
+		$stmt->execute();
+
+		$results = $stmt->fetchAll(PDO::FETCH_OBJ);
+		return $results;
+	}
+
 	private function rowExists($table,$column,$value) {
-		$query = "SELECT 1 FROM {$GLOBALS['config']->tables[$table]}
+		global $config;
+
+		$query = "SELECT 1 FROM {$config->tables[$table]}
 		          WHERE $column = :val";
 		$stmt = $this->db->prepare($query);
 		$stmt->bindParam(':val',$value);
@@ -121,6 +181,7 @@ class DatabaseWrapper {
 	
 	private function validatePost(Post $post, $new=true) {
 		$errors = new APIError('Post errors');
+		global $config;
 
 		// Check if user is valid
 		if (!$this->rowExists('users','user_id',$post->user_id))
@@ -132,8 +193,8 @@ class DatabaseWrapper {
 
 		// Check if user has valid permissions to make a post
 		$query = "SELECT g.make_post_perm, g.edit_post_perm
-		          FROM {$GLOBALS['config']->tables['groups']} g, 
-			           {$GLOBALS['config']->tables['users']} u
+		          FROM {$config->tables['groups']} g, 
+			           {$config->tables['users']} u
 			      WHERE u.group_id = g.group_id AND u.user_id = :user_id";
 		$stmt = $this->db->prepare($query);
 		$stmt->bindParam(':user_id',$post->user_id);
@@ -169,6 +230,7 @@ class DatabaseWrapper {
 
 	private function validateComment(Comment $comment, $new=true) {
 		$errors = new APIError('Comment errors');
+		global $config;
 
 		// Check if user is valid
 		if (!$this->rowExists('users','user_id',$comment->user_id))
@@ -190,8 +252,8 @@ class DatabaseWrapper {
 
 		// Check if user has valid permissions to make a comment
 		$query = "SELECT g.make_comment_perm, g.edit_comment_perm
-		          FROM {$GLOBALS['config']->tables['groups']} g, 
-			           {$GLOBALS['config']->tables['users']} u
+		          FROM {$config->tables['groups']} g, 
+			           {$config->tables['users']} u
 			      WHERE u.group_id = g.group_id AND u.user_id = :user_id";
 		$stmt = $this->db->prepare($query);
 		$stmt->bindParam(':user_id',$comment->user_id);
@@ -235,13 +297,14 @@ class DatabaseWrapper {
 		$tag = new Tag;
 		$tag->setValues(0,$tag_name);
 		$tag->getErrors();
+		global $config;
 
 		// Check that the post actually exists
 		if (!$this->rowExists('posts','post_id',$post_id))
 			throw new APIError('Post Tag errors',1205); // Post doesn't exist
 
 		// Get ID of existing tag with the same name, if it exists
-		$query = "SELECT tag_id FROM {$GLOBALS['config']->tables['tags']}
+		$query = "SELECT tag_id FROM {$config->tables['tags']}
 		          WHERE name = :tag_name";
 		$stmt = $this->db->prepare($query);
 		$stmt->bindParam(':tag_name',$tag->name);
@@ -254,7 +317,7 @@ class DatabaseWrapper {
 			$tag->tag_id = $this->insertObjectIntoTable($tag);
 
 		// Check that tag is not already assigned to the post
-		$query = "SELECT 1 FROM {$GLOBALS['config']->tables['post_tags']}
+		$query = "SELECT 1 FROM {$config->tables['post_tags']}
 		          WHERE post_id = :post_id AND tag_id = :tag_id";
 		$stmt = $this->db->prepare($query);
 		$stmt->bindParam(':post_id',$post_id);
@@ -265,7 +328,7 @@ class DatabaseWrapper {
 		if ($stmt->rowCount()) 
 			return;
 		
-		$query = "INSERT INTO {$GLOBALS['config']->tables['post_tags']} 
+		$query = "INSERT INTO {$config->tables['post_tags']} 
 					(post_id,tag_id) VALUES (:post_id,:tag_id)";
 		$stmt = $this->db->prepare($query);
 		$stmt->bindParam(':post_id',$post_id);
@@ -283,7 +346,4 @@ class DatabaseWrapper {
 			$this->addTagToPost($tag,$post_id);
 	}
 }
-
-?>
-
 

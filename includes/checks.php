@@ -39,5 +39,21 @@
 		return $clean;
 	}
 
-?>
+	function intArrayToString(array $arr) {
+		foreach ($arr as &$el)
+			$el = (int)$el;
+		return implode(',',$arr);
+	}
+
+	function initArrayKeys($keys, $val=null) {
+		$arr = array();
+		foreach($keys as $key)
+			$arr[$key] = $val;
+
+		return $arr;
+	}
+
+	function toColor($num) {
+		return "#".substr("000000".dechex($num),-6);
+	}
 
