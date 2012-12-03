@@ -183,7 +183,9 @@ $db->addTagsToPost(array('test','test2','test3'),1);
 //$u = APIUsersFactory::getUsersByIds(array(1,3,2),true);
 //echo json_encode($u);
 
-$p = APIPostsFactory::getPostsByIds(1);
+//$p = APIPostsFactory::getPostsByIds(1);
+$p = APIPostsFactory::getPostsByTagNames(array('test','test2','te'));
+//$p = APIPostsFactory::getPostsByTagNamesExclude(array('test','test2'),'test3');
 $result = new APIResult($p);
 echo json_encode($result);
 

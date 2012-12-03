@@ -45,6 +45,12 @@
 		return implode(',',$arr);
 	}
 
+	function slugArrayToString(array $arr) {
+		foreach ($arr as &$el)
+			$el = '\''.makeSlug($el).'\'';
+		return implode(',',$arr);
+	}
+
 	function initArrayKeys($keys, $val=null) {
 		$arr = array();
 		foreach($keys as $key)

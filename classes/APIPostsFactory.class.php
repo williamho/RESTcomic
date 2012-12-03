@@ -22,6 +22,7 @@ class APIPostsFactory {
 				AND p.user_id = u.user_id
 				AND u.group_id = g.group_id
 		";
+
 		$stmt = $db->prepare($query);
 		$stmt->execute();
 		while ($result = $stmt->fetchObject()) 
@@ -83,6 +84,76 @@ class APIPostsFactory {
 		}
 
 		return $apiPosts;
+	}
+
+	// Find posts that contain all the tags in the $names array
+	public static function getPostsByTagNames($names,$and=true) {
+		global $db;
+		$names = (array)$names;
+		$nameString = slugArrayToString($names);
+		$numTags = count($names);
+		$postIds = array();
+
+		// Show post IDs for posts that match ANY tag
+		$query = "
+			SELECT p.post_id
+			FROM post_tags pt, posts p, tags t
+			WHERE pt.tag_id = t.tag_id
+			AND t.name IN ($nameString)
+			AND p.post_id = pt.post_id
+			GROUP BY p.post_id 
+		";
+		if ($and) // Show post IDs for posts that match ALL the tags
+			$query .= "HAVING COUNT(p.post_id) = $numTags";
+
+		$stmt = $db->prepare($query);
+		$stmt->execute();
+		while ($result = $stmt->fetchObject()) 
+			array_push($postIds,(int)$result->post_id);
+
+		if (count($postIds))
+			return self::getPostsByIds($postIds);
+		return array();
+	}
+
+	public static function getPostsByTagNamesExclude($include,$exclude,
+													$and=true) 
+	{
+		global $db;
+		$include = (array)$include;
+		$exclude = (array)$exclude;
+		$includeString = slugArrayToString($include);
+		$excludeString = slugArrayToString($exclude);
+		$numInclude = count($include);
+		$postIds = array();
+
+		// Show post IDs for posts that match ANY tag
+		$query = "
+			SELECT p.post_id
+			FROM post_tags pt, posts p, tags t
+			WHERE p.post_id = pt.post_id
+			AND pt.tag_id = t.tag_id
+			AND t.name IN ($includeString)
+			AND p.post_id NOT IN (
+				SELECT p.post_id 
+				FROM posts p, post_tags pt, tags t
+				WHERE p.post_id = pt.post_id
+				AND pt.tag_id = t.tag_id
+				AND t.name IN ($excludeString)
+			)
+			GROUP BY p.post_id 
+		";
+		if ($and) // Show post IDs for posts that match ALL the tags
+			$query .= "HAVING COUNT(p.post_id) = $numInclude";
+
+		$stmt = $db->prepare($query);
+		$stmt->execute();
+		while ($result = $stmt->fetchObject()) 
+			array_push($postIds,(int)$result->post_id);
+
+		if (count($postIds))
+			return self::getPostsByIds($postIds);
+		return array();
 	}
 
 }
