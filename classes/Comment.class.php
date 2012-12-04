@@ -30,7 +30,7 @@ class Comment {
 	}
 
 	public function getErrors() {
-		$errors = new APIError('Comment errors');
+		$errors = new APIError();
 
 		// Check comment ID
 		if (!is_int($this->comment_id))

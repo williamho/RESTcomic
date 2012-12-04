@@ -6,9 +6,8 @@ class APIResult {
 	public $errors;
 	public $response;
 
-	function __construct($response,$errors=array(),$meta=null)
+	function __construct($response=array(),$errors=array(),$meta=null)
 	{
-		header('Content-Type: application/json');
 		$this->response = $response;
 		if ($meta)
 			$this->meta = $meta;
@@ -25,8 +24,12 @@ class APIResult {
 		);
 	}
 
+	public function setResponse($response) {
+		$this->response = $response;
+	}
+
 	public function setErrors(APIError $errors) { 
-		$this->errors = $errors;
+		$this->errors = $errors->getErrors();
 	 }
 
 	public function toJSON() {

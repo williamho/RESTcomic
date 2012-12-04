@@ -32,7 +32,7 @@ class Post {
 	}
 
 	public function getErrors() {
-		$errors = new APIError('Post errors');
+		$errors = new APIError();
 
 		// Check post ID
 		if (!is_int($this->post_id))

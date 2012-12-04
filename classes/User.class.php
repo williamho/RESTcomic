@@ -23,7 +23,7 @@ class User {
 	public function hashPassword() {
 		$this->password = self::$hasher->HashPassword($this->password);
 		if (strlen($this->password)<20)
-			throw new APIError('User errors',1002);
+			throw new APIError(1002);
 	}
 
 	public function setValues($user_id, $group_id, $login, $name, $password,
@@ -40,7 +40,7 @@ class User {
 	}
 
 	public function getErrors() {
-		$errors = new APIError('User errors');
+		$errors = new APIError();
 
 		// Check ID
 		if (!is_int($this->user_id))

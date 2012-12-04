@@ -1,5 +1,5 @@
 <?php
-require_once 'includes/checks.php';
+defined('API_PATH') or die('No direct script access.');
 
 class Group {
 	public $group_id;
@@ -39,7 +39,7 @@ class Group {
 	}
 
 	public function getErrors() {
-		$errors = new APIError('Group errors');
+		$errors = new APIError();
 		
 		if (!is_int($this->group_id))
 			$errors->addError(1101); // Invalid id

@@ -168,19 +168,19 @@ class DatabaseWrapper {
 	private function validateTag(Tag $tag) {
 		// Check if tag name already exists
 		if ($this->rowExists('tags','name',$tag->name))
-			throw new APIError('Tag errors',1403); // Tag name already exists
+			throw new APIError(1403); // Tag name already exists
 		return null;
 	}
 
 	private function validateUser(User $user) {
 		// Check if group is valid
 		if (!$this->rowExists('groups','group_id',$user->group_id))
-			throw new APIError('User errors',1109); // Group doesn't exist
+			throw new APIError(1109); // Group doesn't exist
 		return null;
 	}
 	
 	private function validatePost(Post $post, $new=true) {
-		$errors = new APIError('Post errors');
+		$errors = new APIError();
 		global $config;
 
 		// Check if user is valid
@@ -229,7 +229,7 @@ class DatabaseWrapper {
 	}
 
 	private function validateComment(Comment $comment, $new=true) {
-		$errors = new APIError('Comment errors');
+		$errors = new APIError();
 		global $config;
 
 		// Check if user is valid
@@ -301,7 +301,7 @@ class DatabaseWrapper {
 
 		// Check that the post actually exists
 		if (!$this->rowExists('posts','post_id',$post_id))
-			throw new APIError('Post Tag errors',1205); // Post doesn't exist
+			throw new APIError(1205); // Post doesn't exist
 
 		// Get ID of existing tag with the same name, if it exists
 		$query = "SELECT tag_id FROM {$config->tables['tags']}

@@ -1,5 +1,6 @@
 <?php
 defined('API_PATH') or die('No direct script access.');
+require_once API_PATH.'includes/checks.php';
 
 class APIPostsFactory {
 	/**
@@ -7,7 +8,16 @@ class APIPostsFactory {
 	 * @param array/int $ids
 	 * @return array Posts
 	 */
-	public static function getPostsByIds($ids,$getTags=true,$getGroup=true) {
+	public static function getPostsByIds($ids,$getTags=true,$getGroup=true, 
+				$perPage=POSTS_DEFAULT_NUM,$page=0)
+	{
+		if ((int)$perPage == 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 0)
+			$page = 0;
+
 		global $db;
 		$ids = (array)$ids;
 		$idString = intArrayToString($ids);
@@ -15,18 +25,29 @@ class APIPostsFactory {
 		$users = array();
 		$commentInfo = array();
 
+		$lower = $page * $perPage;
+		$upper = ($page+1) * $perPage - 1;
+
 		$query = "
 			SELECT *, u.name AS user_name, g.name AS group_name
 			FROM posts p, users u, groups g
 			WHERE p.post_id IN ($idString)
 				AND p.user_id = u.user_id
 				AND u.group_id = g.group_id
+			LIMIT $lower,$upper
 		";
 
 		$stmt = $db->prepare($query);
 		$stmt->execute();
-		while ($result = $stmt->fetchObject()) 
+		$ids = array();
+		while ($result = $stmt->fetchObject()) {
 			array_push($posts, $result);
+			array_push($ids, $result->post_id);
+		}
+		if (empty($ids))
+			return array();
+
+		$idString = intArrayToString($ids);
 
 		if ($getTags) {
 			$tags = initArrayKeys($ids,array());
@@ -87,7 +108,7 @@ class APIPostsFactory {
 	}
 
 	// Find posts that contain all the tags in the $names array
-	public static function getPostsByTagNames($names,$and=true) {
+	public static function getPostsByTags($names,$and=true) {
 		global $db;
 		$names = (array)$names;
 		$nameString = slugArrayToString($names);
@@ -116,7 +137,7 @@ class APIPostsFactory {
 		return array();
 	}
 
-	public static function getPostsByTagNamesExclude($include,$exclude,
+	public static function getPostsByTagsExclude($include,$exclude,
 													$and=true) 
 	{
 		global $db;
@@ -151,9 +172,9 @@ class APIPostsFactory {
 		while ($result = $stmt->fetchObject()) 
 			array_push($postIds,(int)$result->post_id);
 
-		if (count($postIds))
-			return self::getPostsByIds($postIds);
-		return array();
+		if (empty($postIds))
+			return array();
+		return self::getPostsByIds($postIds);
 	}
 
 }

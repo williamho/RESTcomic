@@ -9,7 +9,7 @@ class APIError extends Exception {
 	 * @param int $errno API error number (see function getErrorById)
 	 * @param int $code Exception code
 	 */
-	public function __construct($message='', $errno=null, $code=0, 
+	public function __construct($errno=null, $message='', $code=0, 
 		Exception $previous=null) 
 	{
 		if (is_null($errno))
@@ -27,6 +27,10 @@ class APIError extends Exception {
 		return empty($this->errors);
 	}
 
+	public function merge(APIError $e) {
+		$this->errors = array_merge($this->errors,$e->getErrors());
+	}
+
 	/**
 	 * Return an error array based on the error number
 	 *
@@ -38,6 +42,9 @@ class APIError extends Exception {
 
 		switch($id) {
 		case 0: $msg = ''; break;
+
+		case 400: $msg = 'Bad request'; break;
+		case 404: $msg = 'Resource not found'; break;
 
 		// User errors
 		case 1001: $msg = 'Invalid user ID'; break;
@@ -74,6 +81,9 @@ class APIError extends Exception {
 							break;
 		case 1208: $msg = 'Title slug exceeds max length'; break;
 		case 1209: $msg = 'Post already exists with this title slug'; break;
+		case 1210: $msg = "Invalid format specified (try 'html' or 'md')"; 
+							break;
+		case 1211: $msg = 'No posts found'; break;
 
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;

@@ -15,7 +15,7 @@ class Tag {
 	}
 
 	public function getErrors() {
-		$errors = new APIError('Tag errors');
+		$errors = new APIError();
 
 		// Check tag ID
 		if (!is_int($this->tag_id))

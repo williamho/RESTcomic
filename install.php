@@ -5,10 +5,6 @@ define('ADMIN_COLOR','#ff0000');
 define('UNREG_COLOR','#000000');
 define('REG_COLOR','#000000');
 
-function __autoload($class_name) {
-	require_once "classes/$class_name.class.php";
-}
-
 /*===============*
  | Set up tables |
  *===============*/
@@ -150,7 +146,7 @@ $db->insertObjectIntoTable($regGroup);
 
 // Add sample post
 $samplePost = new Post;
-$samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img','text');
+$samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img',"Header\n-------\n\n>Block\n>Quote\n");
 $db->insertObjectIntoTable($samplePost);
 
 // Add sample comment
@@ -184,8 +180,8 @@ $db->addTagsToPost(array('test','test2','test3'),1);
 //echo json_encode($u);
 
 //$p = APIPostsFactory::getPostsByIds(1);
-$p = APIPostsFactory::getPostsByTagNames(array('test','test2','te'));
-//$p = APIPostsFactory::getPostsByTagNamesExclude(array('test','test2'),'test3');
+$p = APIPostsFactory::getPostsByTags(array('test','test2','te'));
+//$p = APIPostsFactory::getPostsByTagsExclude(array('test','test2'),'test3');
 $result = new APIResult($p);
 echo json_encode($result);
 

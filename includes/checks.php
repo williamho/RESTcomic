@@ -45,6 +45,12 @@
 		return implode(',',$arr);
 	}
 
+	function slugifyArray(array $arr) {
+		foreach ($arr as &$el)
+			$el = makeSlug($el);
+		return $arr;
+	}
+
 	function slugArrayToString(array $arr) {
 		foreach ($arr as &$el)
 			$el = '\''.makeSlug($el).'\'';
@@ -61,5 +67,19 @@
 
 	function toColor($num) {
 		return "#".substr("000000".dechex($num),-6);
+	}
+
+	function stringToBool($str) {
+		$str = trim(strtolower($str));
+		switch($str) {
+		case 'false': 
+		case 'no': 
+		case '0':
+		case null:
+		case 0:
+			return false;
+		default:
+			return true;
+		}
 	}
 
