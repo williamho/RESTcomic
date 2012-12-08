@@ -29,11 +29,13 @@ class APIPostsFactory {
 		$upper = ($page+1) * $perPage - 1;
 
 		$query = "
-			SELECT *, u.name AS user_name, g.name AS group_name
-			FROM posts p, users u, groups g
+			SELECT *, u.name AS user_name, g.name AS group_name, 
+					COUNT(c.comment_id) AS comment_count
+			FROM posts p, users u, groups g, comments c
 			WHERE p.post_id IN ($idString)
 				AND p.user_id = u.user_id
 				AND u.group_id = g.group_id
+				AND c.post_id = p.post_id
 			LIMIT $lower,$upper
 		";
 
@@ -44,9 +46,10 @@ class APIPostsFactory {
 			array_push($posts, $result);
 			array_push($ids, $result->post_id);
 		}
-		if (empty($ids))
+		if (empty($ids) || is_null($ids[0]))
 			return array();
 
+		// there's a problem here
 		$idString = intArrayToString($ids);
 
 		if ($getTags) {
@@ -78,6 +81,8 @@ class APIPostsFactory {
 			else
 				$apiGroup = null;
 
+			$commentsInfo = APICommentsFactory::getCommentInfo(
+				$post->post_id,$post->comment_count);
 			$apiUser = new APIUser(
 				$post->user_id,
 				$apiGroup,
@@ -87,6 +92,7 @@ class APIPostsFactory {
 				$post->email
 			);
 
+			
 			$apiPost = new APIPost(
 				$post->post_id,
 				$post->timestamp,
@@ -97,8 +103,7 @@ class APIPostsFactory {
 				$post->image_url,
 				$post->content,
 				$apiUser,
-				//$commentsInfo[$index],
-				null,
+				$commentsInfo,
 				$tags[$post->post_id]
 			);
 			array_push($apiPosts,$apiPost);
@@ -132,9 +137,9 @@ class APIPostsFactory {
 		while ($result = $stmt->fetchObject()) 
 			array_push($postIds,(int)$result->post_id);
 
-		if (count($postIds))
-			return self::getPostsByIds($postIds);
-		return array();
+		if (empty($postIds))
+			return array();
+		return self::getPostsByIds($postIds);
 	}
 
 	public static function getPostsByTagsExclude($include,$exclude,

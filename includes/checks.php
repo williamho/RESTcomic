@@ -40,8 +40,11 @@
 	}
 
 	function intArrayToString(array $arr) {
-		foreach ($arr as &$el)
+		foreach ($arr as &$el) {
+			if (!is_int($el) && !ctype_digit($el)) 
+				throw new APIError(2001);
 			$el = (int)$el;
+		}
 		return implode(',',$arr);
 	}
 

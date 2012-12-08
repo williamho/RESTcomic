@@ -21,7 +21,7 @@ class APIGroup {
 			);
 		}
 		else {
-			$this->info = '/groups/id/'.$id;
+			$this->down = '/groups/id/'.$id;
 		}
 	}
 

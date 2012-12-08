@@ -6,14 +6,21 @@ class APIResult {
 	public $errors;
 	public $response;
 
-	function __construct($response=array(),$errors=array(),$meta=null)
+	function __construct($response=array(),$errors=null,$meta=null)
 	{
-		$this->response = $response;
-		if ($meta)
-			$this->meta = $meta;
+		if (is_null($response))
+			$this->response = array();
 		else
+			$this->response = $response;
+		if (is_null($meta))
 			$this->meta = self::defaultMeta();
-		$this->errors = $errors;
+		else
+			$this->meta = $meta;
+
+		if (is_null($errors))
+			$this->errors = array();
+		else
+			$this->setErrors($errors);
 	}
 
 	public function setMeta($up,$prev=null,$next=null) {

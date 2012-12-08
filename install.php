@@ -146,7 +146,7 @@ $db->insertObjectIntoTable($regGroup);
 
 // Add sample post
 $samplePost = new Post;
-$samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img',"Header\n-------\n\n>Block\n>Quote\n");
+$samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img',"Header\n-------\n\n>Block\n>\n>Quote\n");
 $db->insertObjectIntoTable($samplePost);
 
 // Add sample comment
@@ -170,18 +170,4 @@ try {
 }
 
 $db->addTagsToPost(array('test','test2','test3'),1);
-
-
-//$g = APIGroupsFactory::getGroupsByIds(array(0,3,1));
-//$result = new APIResult($g);
-//echo json_encode($result);
-
-//$u = APIUsersFactory::getUsersByIds(array(1,3,2),true);
-//echo json_encode($u);
-
-//$p = APIPostsFactory::getPostsByIds(1);
-$p = APIPostsFactory::getPostsByTags(array('test','test2','te'));
-//$p = APIPostsFactory::getPostsByTagsExclude(array('test','test2'),'test3');
-$result = new APIResult($p);
-echo json_encode($result);
 

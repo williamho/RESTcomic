@@ -46,6 +46,8 @@ class APIError extends Exception {
 		case 400: $msg = 'Bad request'; break;
 		case 404: $msg = 'Resource not found'; break;
 
+		case 2001: $msg = 'Invalid ID'; break;
+
 		// User errors
 		case 1001: $msg = 'Invalid user ID'; break;
 		case 1002: $msg = 'Failed to hash password'; break;
@@ -83,7 +85,6 @@ class APIError extends Exception {
 		case 1209: $msg = 'Post already exists with this title slug'; break;
 		case 1210: $msg = "Invalid format specified (try 'html' or 'md')"; 
 							break;
-		case 1211: $msg = 'No posts found'; break;
 
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;
