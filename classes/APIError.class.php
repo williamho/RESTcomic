@@ -47,6 +47,10 @@ class APIError extends Exception {
 		case 404: $msg = 'Resource not found'; break;
 
 		case 2001: $msg = 'Invalid ID'; break;
+		case 2002: $msg = 'Invalid consumer key'; break;
+		case 2003: $msg = 'Invalid OAuth signature'; break;
+		case 2004: $msg = 'Invalid timestamp'; break;
+		case 2005: $msg = 'Expired timestamp'; break;
 
 		// User errors
 		case 1001: $msg = 'Invalid user ID'; break;

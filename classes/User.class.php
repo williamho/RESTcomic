@@ -12,12 +12,14 @@ class User {
 	public $date_registered;
 	public $email;
 	public $website;
+	public $api_key;
 
 	static public $limits = array(
 		'login' => 24,
 		'name' => 32,
 		'password' => 60,
-		'email' => 255
+		'email' => 255,
+		'api_key' => 40
 	);
 
 	public function hashPassword() {
@@ -27,7 +29,7 @@ class User {
 	}
 
 	public function setValues($user_id, $group_id, $login, $name, $password,
-			$date_registered='now', $email='', $website='') 
+			$date_registered='now', $email='', $website='', $api_key='') 
 	{
 		$this->user_id = $user_id;
 		$this->group_id = $group_id;
@@ -37,6 +39,7 @@ class User {
 		$this->date_registered = $date_registered;
 		$this->email = $email;
 		$this->website = $website;
+		$this->api_key = $api_key;
 	}
 
 	public function getErrors() {
@@ -69,6 +72,10 @@ class User {
 		// Check email
 		if (!self::checkLength($this->email,'email'))
 			$errors->addError(1007); // email too long
+		
+		if ($this->user_id === 0 && $this->api_key === '')
+			$this->api_key = $this->newAPIKey();
+			
 
 		if (!$errors->isEmpty())
 			return $errors;
@@ -77,6 +84,10 @@ class User {
 
 	private static function checkLength($string,$field) {
 		return strlen($string) <= self::$limits[$field];
+	}
+
+	private function newAPIKey() {
+		return sha1(rand());
 	}
 }
 User::$hasher = new PasswordHash(8, false);

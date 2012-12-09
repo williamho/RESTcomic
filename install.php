@@ -39,6 +39,7 @@ $query = "CREATE TABLE {$config->tables['users']} (
 	date_registered DATETIME NOT NULL,
 	email VARCHAR(".User::$limits['email']."),
 	website TEXT,
+	api_key VARCHAR(".User::$limits['api_key']."),
 	UNIQUE(login),
 	PRIMARY KEY(user_id),
 	FOREIGN KEY(group_id) REFERENCES groups(group_id) ON DELETE SET DEFAULT

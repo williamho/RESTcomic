@@ -18,7 +18,7 @@ class APIPostsFactory {
 		if ($page < 0)
 			$page = 0;
 
-		global $db;
+		global $db, $config;
 		$ids = (array)$ids;
 		$idString = intArrayToString($ids);
 		$posts = array();
@@ -31,7 +31,10 @@ class APIPostsFactory {
 		$query = "
 			SELECT *, u.name AS user_name, g.name AS group_name, 
 					COUNT(c.comment_id) AS comment_count
-			FROM posts p, users u, groups g, comments c
+			FROM {$config->tables['posts']} p, 
+				{$config->tables['users']} u,
+				{$config->tables['groups']} g,
+				{$config->tables['comments']} c
 			WHERE p.post_id IN ($idString)
 				AND p.user_id = u.user_id
 				AND u.group_id = g.group_id
@@ -57,7 +60,9 @@ class APIPostsFactory {
 
 			$query = "
 				SELECT p.post_id, t.name as tag_name
-				FROM posts p, tags t, post_tags pt
+				FROM {$config->tables['posts']} p, 
+					{$config->tables['tags']} t, 
+					{$config->tables['post_tags']} pt
 				WHERE p.post_id IN ($idString)
 					AND pt.post_id = p.post_id
 					AND pt.tag_id = t.tag_id
@@ -114,7 +119,7 @@ class APIPostsFactory {
 
 	// Find posts that contain all the tags in the $names array
 	public static function getPostsByTags($names,$and=true) {
-		global $db;
+		global $db, $config;
 		$names = (array)$names;
 		$nameString = slugArrayToString($names);
 		$numTags = count($names);
@@ -123,7 +128,9 @@ class APIPostsFactory {
 		// Show post IDs for posts that match ANY tag
 		$query = "
 			SELECT p.post_id
-			FROM post_tags pt, posts p, tags t
+			FROM {$config->tables['post_tags']} pt, 
+				{$config->tables['posts']} p, 
+				{$config->tables['tags']} t
 			WHERE pt.tag_id = t.tag_id
 			AND t.name IN ($nameString)
 			AND p.post_id = pt.post_id
@@ -156,13 +163,17 @@ class APIPostsFactory {
 		// Show post IDs for posts that match ANY tag
 		$query = "
 			SELECT p.post_id
-			FROM post_tags pt, posts p, tags t
+			FROM {$config->tables['post_tags']} pt, 
+				{$config->tables['posts']} p, 
+				{$config->tables['tags']} t
 			WHERE p.post_id = pt.post_id
 			AND pt.tag_id = t.tag_id
 			AND t.name IN ($includeString)
 			AND p.post_id NOT IN (
 				SELECT p.post_id 
-				FROM posts p, post_tags pt, tags t
+				FROM {$config->tables['post_tags']} pt, 
+					{$config->tables['posts']} p, 
+					{$config->tables['tags']} t
 				WHERE p.post_id = pt.post_id
 				AND pt.tag_id = t.tag_id
 				AND t.name IN ($excludeString)
