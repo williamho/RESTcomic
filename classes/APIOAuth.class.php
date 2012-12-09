@@ -26,9 +26,15 @@ class APIOAuth {
 			throw new APIError(2005); // Expired timestamp
 
 		$query = "
-			SELECT user_id, api_key
-			FROM {$config->tables['users']} u
+			SELECT u.user_id, u.api_key, g.admin_perm AS admin,
+				g.make_post_perm AS make_post, 
+				g.edit_post_perm AS edit_post,
+				g.make_comment_perm AS make_comment, 
+				g.edit_comment_perm AS edit_comment
+			FROM {$config->tables['users']} u,
+				{$config->tables['groups']} g
 			WHERE u.login = :login
+				AND u.group_id = g.group_id
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':login',$user);
@@ -44,7 +50,7 @@ class APIOAuth {
 						null, $sig);	
 
 		if ($valid)
-			return $userInfo->user_id;
+			return $userInfo;
 		throw new APIError(2003);
 	}
 }

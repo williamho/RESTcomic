@@ -45,12 +45,14 @@ class APIError extends Exception {
 
 		case 400: $msg = 'Bad request'; break;
 		case 404: $msg = 'Resource not found'; break;
+		case 500: $msg = 'Internal server error'; break;
 
 		case 2001: $msg = 'Invalid ID'; break;
 		case 2002: $msg = 'Invalid consumer key'; break;
 		case 2003: $msg = 'Invalid OAuth signature'; break;
 		case 2004: $msg = 'Invalid timestamp'; break;
 		case 2005: $msg = 'Expired timestamp'; break;
+		case 2006: $msg = 'Invalid parameters'; break;
 
 		// User errors
 		case 1001: $msg = 'Invalid user ID'; break;
@@ -101,9 +103,10 @@ class APIError extends Exception {
 							comment'; break;
 
 		// Tag errors
-		case 1401: $msg = 'Invalid comment ID'; break;
+		case 1401: $msg = 'Invalid post ID'; break;
 		case 1402: $msg = 'Tag name exceeds max length'; break;
 		case 1403: $msg = 'Tag with this name already exists'; break;
+		case 1404: $msg = 'Cannot specify excluded tags only'; break;
 		
 		// Default
 		default: $msg = 'Unknown error'; break;

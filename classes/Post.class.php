@@ -67,7 +67,7 @@ class Post {
 			$errors->addError(1204); // Invalid date
 
 		// Check image URL
-		$this->image_url = (string)$this->image_url;
+		$this->image_url = htmlspecialchars((string)$this->image_url);
 
 		// Set body text of the post
 		$this->content = (string)$this->content; // Assume markdown format

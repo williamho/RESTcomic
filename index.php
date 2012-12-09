@@ -11,15 +11,27 @@ $app->notFound(function() {
 	output($result);
 });
 
-$app->get('/', function() {
-	echo 'hi';	
+$app->error(function(\Exception $e) {
+	$result = new APIResult(array());
+	$error = new APIError(500);
+	$result->setErrors($error);
+	output($result);
 });
 
-$app->get('/posts/id/:idList', function($idList) {
+$app->get('/', function() {
+});
+
+$app->get('/posts/id/:idList', function($idList) use($app) {
 	try { 
 		$ids = explode(',',$idList);
-		$posts = APIPostsFactory::getPostsByIds($ids);
+		$perPage = $app->request()->get('perPage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
+
+		$posts = APIPostsFactory::getPostsByIds($ids,$desc,$perPage,$page);
 		$result = new APIResult($posts);
+		paginate($result);
+		setUp($result,'/posts');
 		convertMarkdown($result->response); 
 	}
 	catch(APIError $e) { 
@@ -28,11 +40,35 @@ $app->get('/posts/id/:idList', function($idList) {
 	output($result);
 });
 
-$app->get('/posts/tagged/:tagList', function($tagList) {
-	global $app;
+$app->get('/posts', function() use ($app) {
+	try {
+		$perPage = $app->request()->get('perpage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
+
+		$from = $app->request()->get('from');
+		$to = $app->request()->get('to');
+
+		$posts = APIPostsFactory::getPostsBetweenIds(
+			$from,$to,$desc,$perPage,$page);
+		$result = new APIResult($posts);
+		paginate($result);
+		setUp($result,'');
+		convertMarkdown($result->response);
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->get('/posts/tagged/:tagList', function($tagList) use($app) {
 	try { 
 		$and = !stringToBool($app->request()->get('any'));
 		$tags = explode(',',$tagList);
+		$perPage = $app->request()->get('perPage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
 		
 		$include = array();
 		$exclude = array();
@@ -44,12 +80,16 @@ $app->get('/posts/tagged/:tagList', function($tagList) {
 		}
 
 		if (empty($exclude))
-			$posts = APIPostsFactory::getPostsByTags($tags,$and);
+			$posts = APIPostsFactory::getPostsByTags($tags,$and,
+				$desc,$perPage,$page);
+		else if (empty($include))
+			throw new APIError(1404); // No included tags
 		else
 			$posts = APIPostsFactory::getPostsByTagsExclude(
-						$include,$exclude,$and);
+				$include,$exclude,$and,$desc,$perPage,$page);
 
 		$result = new APIResult($posts);
+		setUp($result,'/posts');
 		convertMarkdown($result->response); 
 	}
 	catch(APIError $e) { 
@@ -64,6 +104,7 @@ $app->get('/posts/id/:id/comments', function($id) {
 		$id = (int)$id;
 		$comments = APICommentsFactory::getCommentsByPostId($id);
 		$result = new APIResult($comments);
+		setUp($result,'/posts');
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -76,6 +117,7 @@ $app->get('/users/id/:idList', function($idList) {
 		$ids = explode(',',$idList);
 		$users = APIUsersFactory::getUsersByIds($ids);
 		$result = new APIResult($users);
+		setUp($result,'/users');
 	}	
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -89,6 +131,7 @@ $app->get('/groups/id/:idList', function($idList) {
 		$ids = explode(',',$idList);
 		$groups = APIGroupsFactory::getGroupsByIds($ids);
 		$result = new APIResult($groups);
+		setUp($result,'/groups');
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -97,10 +140,46 @@ $app->get('/groups/id/:idList', function($idList) {
 	output($result);
 });
 
+$app->post('/posts', function() use($app) {
+	try {
+		global $db;
+		$user = APIOAuth::validate();
 
+		if ($user->make_post == Group::PERM_MAKE_NONE)
+			throw new APIError(1206); // Invalid post permissions
 
-$app->post('/post', function() {
-	
+		$params = $app->request()->post();
+
+		$user_id = (int)$user->user_id;
+		$title = $params['title'];
+		$status = (int)$params['status'];
+		if (isset($params['commentable']))
+			$commentable = (bool)$params['commentable'];
+		else
+			$commentable = false;
+		$timestamp = 'now'; // change later
+		$image = $params['image_url'];
+		$tags = $params['tags'];
+		$content = $params['content'];
+
+		$post = new Post;
+		$post->setValues(0,$user_id,$title,null,$status,$commentable,
+			$timestamp,$image,$content);
+		$post_id = $db->insertObjectIntoTable($post);
+
+		$tagsArray = explode(',',$tags);
+		$db->addTagsToPost($tagsArray,$post_id);
+
+		$result = new APIResult(APIPostsFactory::getPostsByIds($post_id)); 
+		
+		if ($user->make_post == Group::PERM_MAKE_HIDDEN)
+			; // Set the post to hidden
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+
+	output($result);
 });
 
 $app->put('/put', function () {
@@ -112,6 +191,42 @@ $app->delete('/delete', function () {
 });
 
 $app->run();
+
+function setUp(APIResult &$content, $uri) {
+	$content->meta['up'] = getCurrentFileURL() . $uri;
+}
+
+function paginate(APIResult &$content) {
+	global $app;
+	$baseURL = getCurrentAPIURL();
+	$params = $app->request()->get();
+
+	if (isset($params['page'])) 
+		$page = $params['page'];
+	else
+		$params['page'] = 1;
+
+	if (!isset($params['perpage'])) 
+		$perPage = POSTS_DEFAULT_NUM;
+	else
+		$perPage = $params['perpage'];
+
+	if ($params['page'] <= 1)
+		$content->meta['prev'] = null;
+	else {
+		$params['page'] = $page-1;
+		$content->meta['prev'] = $baseURL.'?'.
+			http_build_query($params);
+	}
+
+	if (count($content->response) < $perPage)
+		$content->meta['next'] = null;
+	else {
+		$params['page'] = $page+1;
+		$content->meta['next'] = $baseURL.'?'.
+			http_build_query($params);
+	}
+}
 
 function output(APIResult $content) {
 	global $app;

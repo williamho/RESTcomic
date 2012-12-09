@@ -8,15 +8,21 @@ class APIPostsFactory {
 	 * @param array/int $ids
 	 * @return array Posts
 	 */
-	public static function getPostsByIds($ids,$getTags=true,$getGroup=false, 
-				$perPage=POSTS_DEFAULT_NUM,$page=0)
+	public static function getPostsByIds($ids,$reverse=false,
+				$perPage=POSTS_DEFAULT_NUM,$page=1,
+				$getTags=true,$getGroup=false)
 	{
-		if ((int)$perPage == 0)
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+
+		if ($perPage <= 0)
 			$perPage = POSTS_DEFAULT_NUM;
-		if ($perPage > POSTS_MAX_NUM) 
+		else if ($perPage > POSTS_MAX_NUM) 
 			$perPage = POSTS_MAX_NUM;
-		if ($page < 0)
-			$page = 0;
+		if ($page < 1)
+			$page = 1;
+
+		$lower = ($page-1) * $perPage;
 
 		global $db, $config;
 		$ids = (array)$ids;
@@ -25,23 +31,16 @@ class APIPostsFactory {
 		$users = array();
 		$commentInfo = array();
 
-		$lower = $page * $perPage;
-		$upper = ($page+1) * $perPage - 1;
-
+		$desc = $reverse ? 'DESC' : '';
 		$query = "
-			SELECT p.*, u.*, g.*, u.name AS user_name, g.name AS group_name,
-					COUNT(c.comment_id) AS comment_count
-			FROM {$config->tables['posts']} p, 
-				{$config->tables['users']} u,
-				{$config->tables['groups']} g,
-				{$config->tables['comments']} c
+			SELECT p.*, u.*, g.*, u.name AS user_name, g.name AS group_name
+			FROM {$config->tables['posts']} p 
+			LEFT JOIN {$config->tables['users']} u on u.user_id = p.user_id 
+			LEFT JOIN {$config->tables['groups']} g on g.group_id = u.group_id
 			WHERE p.post_id IN ($idString)
-				AND p.user_id = u.user_id
-				AND u.group_id = g.group_id
-				AND c.post_id = p.post_id
-			LIMIT $lower,$upper
+			ORDER BY p.post_id $desc 
+			LIMIT $lower,$perPage
 		";
-
 		$stmt = $db->prepare($query);
 		$stmt->execute();
 		$ids = array();
@@ -100,8 +99,11 @@ class APIPostsFactory {
 				unset($apiUser->group);
 				$apiUser->group_color = toColor((int)$post->color);
 			}
-
-			
+		
+			if (isset($tags[$post->post_id]))
+				$tagList = $tags[$post->post_id];
+			else
+				$tagList = array();
 			$apiPost = new APIPost(
 				$post->post_id,
 				$post->timestamp,
@@ -113,7 +115,7 @@ class APIPostsFactory {
 				$post->content,
 				$apiUser,
 				$commentsInfo,
-				$tags[$post->post_id]
+				$tagList
 			);
 			array_push($apiPosts,$apiPost);
 		}
@@ -121,13 +123,75 @@ class APIPostsFactory {
 		return $apiPosts;
 	}
 
+	public static function getPostsBetweenIds($from=null,$to=null,
+				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=1,
+				$getTags=true,$getGroup=false)
+	{
+		global $db, $config;
+
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+		$from = (int)$from;
+		$to = (int)$to;
+		if (!$to)
+			$to = PHP_INT_MAX;
+
+		if ($perPage <= 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		else if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 1)
+			$page = 1;
+		$lower = ($page-1) * $perPage;
+		$desc = $reverse ? 'DESC' : '';
+
+		$query = "
+			SELECT p.post_id
+			FROM {$config->tables['posts']} p
+			WHERE p.post_id >= :from
+				AND p.post_id <= :to
+			ORDER BY p.post_id $desc 
+			LIMIT $lower,$perPage
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':from',$from);
+		$stmt->bindParam(':to',$to);
+		$stmt->execute();
+
+		$ids = array();
+		while ($result = (int)$stmt->fetchColumn())
+			array_push($ids,$result);
+
+		if (empty($ids))
+			return array();
+
+		return self::getPostsByIds($ids,$reverse,$perPage,
+					0,$getTags,$getGroup);
+	}
+
+
 	public static function getPostBySlug($slug) {
 		global $db, $config;
 		
 	}
 
 	// Find posts that contain all the tags in the $names array
-	public static function getPostsByTags($names,$and=true) {
+	public static function getPostsByTags($names,$and=true,
+				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=0,
+				$getTags=true,$getGroup=false)
+	{
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+
+		if ($perPage <= 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		else if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 1)
+			$page = 1;
+		$lower = ($page-1) * $perPage;
+		$desc = $reverse ? 'DESC' : '';
+
 		global $db, $config;
 		$names = (array)$names;
 		$nameString = slugArrayToString($names);
@@ -147,6 +211,10 @@ class APIPostsFactory {
 		";
 		if ($and) // Show post IDs for posts that match ALL the tags
 			$query .= "HAVING COUNT(p.post_id) = $numTags";
+		$query .= "
+			ORDER BY p.post_id $desc 
+			LIMIT $lower,$perPage
+		";
 
 		$stmt = $db->prepare($query);
 		$stmt->execute();
@@ -155,13 +223,27 @@ class APIPostsFactory {
 
 		if (empty($postIds))
 			return array();
-		return self::getPostsByIds($postIds);
+		return self::getPostsByIds($postIds,$reverse,$perPage,
+					0,$getTags,$getGroup);
 	}
 
-	public static function getPostsByTagsExclude($include,$exclude,
-													$and=true) 
+	public static function getPostsByTagsExclude($include,$exclude,$and=true,
+				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=0,
+				$getTags=true,$getGroup=false)
 	{
-		global $db;
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+
+		if ($perPage <= 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		else if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 1)
+			$page = 1;
+		$lower = ($page-1) * $perPage;
+		$desc = $reverse ? 'DESC' : '';
+
+		global $db, $config;
 		$include = (array)$include;
 		$exclude = (array)$exclude;
 		$includeString = slugArrayToString($include);
@@ -190,7 +272,12 @@ class APIPostsFactory {
 			GROUP BY p.post_id 
 		";
 		if ($and) // Show post IDs for posts that match ALL the tags
-			$query .= "HAVING COUNT(p.post_id) = $numInclude";
+			$query .= "HAVING COUNT(t.tag_id) = $numInclude";
+		$query .= "
+			ORDER BY p.post_id $desc 
+			LIMIT $lower,$perPage
+		";
+		echo $query;
 
 		$stmt = $db->prepare($query);
 		$stmt->execute();
@@ -199,9 +286,10 @@ class APIPostsFactory {
 
 		if (empty($postIds))
 			return array();
-		return self::getPostsByIds($postIds);
+		return self::getPostsByIds($postIds,$reverse,$perPage,
+					0,$getTags,$getGroup);
 	}
-
+		
 }
 
 

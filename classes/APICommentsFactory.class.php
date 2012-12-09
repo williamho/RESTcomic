@@ -7,17 +7,13 @@ class APICommentsFactory {
 		$id = (int)$id;
 
 		$query = "
-			SELECT c.comment_id, c.post_id, c.user_id, c.parent_comment_id,
-				c.timestamp, c.content, c.name AS comment_name, g.color, 
+			SELECT c.*, c.name AS comment_name, g.color, 
 				u.login, u.name AS user_name, u.email, u.website
-			FROM {$config->tables['comments']} c,
-				{$config->tables['users']} u,
-				{$config->tables['posts']} p,
-				{$config->tables['groups']} g
+			FROM {$config->tables['comments']} c
+			LEFT JOIN {$config->tables['users']} u on u.user_id = c.user_id
+			LEFT JOIN {$config->tables['posts']} p on p.post_id = c.post_id
+			LEFT JOIN {$config->tables['groups']} g on g.group_id = u.group_id
 			WHERE c.post_id = :post_id
-				AND c.post_id = p.post_id
-				AND c.user_id = u.user_id
-				AND u.group_id = g.group_id
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':post_id',$id);

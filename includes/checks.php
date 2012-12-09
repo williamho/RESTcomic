@@ -1,88 +1,107 @@
 <?php
-	/**
-	 * Check if string contains alphanumeric and underscore characters
-	 * @param string $str The string being checked
-	 * @return bool True if string contains only alphanumerics and underscores
-	 */
-	function checkAlphanumUnderscore($str) {
-		return preg_match('/^[a-zA-Z0-9_]+$/',$str);
+/**
+ * Check if string contains alphanumeric and underscore characters
+ * @param string $str The string being checked
+ * @return bool True if string contains only alphanumerics and underscores
+ */
+function checkAlphanumUnderscore($str) {
+	return preg_match('/^[a-zA-Z0-9_]+$/',$str);
+}
+
+/**
+ * Check if date is valid  
+ * @param string $timestamp A timestamp, in whatever format
+ * @return mixed If null input, outputs current time. 
+				 If valid input, converts to mySQL format. 
+				 If invalid input, returns null.
+ */
+function convertDatetime($timestamp) {
+	if (!$timestamp)
+		return date(Config::timeFormat);
+	else if ($unixTime = strtotime($timestamp))
+		return date(Config::timeFormat,$unixTime);
+	else
+		return null;
+}
+
+// toAscii via http://cubiq.org/the-perfect-php-clean-url-generator
+setlocale(LC_ALL, 'en_US.UTF8');
+function makeSlug($str, $replace='\'', $delimiter='-') {
+	if( !empty($replace) ) {
+		$str = str_replace((array)$replace, ' ', $str);
 	}
 
-	/**
-	 * Check if date is valid  
-	 * @param string $timestamp A timestamp, in whatever format
-	 * @return mixed If null input, outputs current time. 
-	                 If valid input, converts to mySQL format. 
-					 If invalid input, returns null.
-	 */
-	function convertDatetime($timestamp) {
-		if (!$timestamp)
-			return date(Config::timeFormat);
-		else if ($unixTime = strtotime($timestamp))
-			return date(Config::timeFormat,$unixTime);
-		else
-			return null;
+	$clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
+	$clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
+	$clean = strtolower(trim($clean, '-'));
+	$clean = preg_replace("/[\/_|+ -]+/", $delimiter, $clean);
+
+	return $clean;
+}
+
+function intArrayToString(array $arr) {
+	foreach ($arr as &$el) {
+		if (!is_int($el) && !ctype_digit($el)) 
+			throw new APIError(2001);
+		$el = (int)$el;
 	}
+	return implode(',',$arr);
+}
 
-	// toAscii via http://cubiq.org/the-perfect-php-clean-url-generator
-	setlocale(LC_ALL, 'en_US.UTF8');
-	function makeSlug($str, $replace='\'', $delimiter='-') {
-		if( !empty($replace) ) {
-			$str = str_replace((array)$replace, ' ', $str);
-		}
+function slugifyArray(array $arr) {
+	foreach ($arr as &$el)
+		$el = makeSlug($el);
+	return $arr;
+}
 
-		$clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
-		$clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
-		$clean = strtolower(trim($clean, '-'));
-		$clean = preg_replace("/[\/_|+ -]+/", $delimiter, $clean);
+function slugArrayToString(array $arr) {
+	foreach ($arr as &$el)
+		$el = '\''.makeSlug($el).'\'';
+	return implode(',',$arr);
+}
 
-		return $clean;
-	}
+function initArrayKeys($keys, $val=null) {
+	$arr = array();
+	foreach($keys as $key)
+		$arr[$key] = $val;
 
-	function intArrayToString(array $arr) {
-		foreach ($arr as &$el) {
-			if (!is_int($el) && !ctype_digit($el)) 
-				throw new APIError(2001);
-			$el = (int)$el;
-		}
-		return implode(',',$arr);
-	}
+	return $arr;
+}
 
-	function slugifyArray(array $arr) {
-		foreach ($arr as &$el)
-			$el = makeSlug($el);
-		return $arr;
-	}
+function toColor($num) {
+	return "#".substr("000000".dechex($num),-6);
+}
 
-	function slugArrayToString(array $arr) {
-		foreach ($arr as &$el)
-			$el = '\''.makeSlug($el).'\'';
-		return implode(',',$arr);
-	}
+function stringToBool($str) {
+	$str = trim(strtolower((string)$str));
 
-	function initArrayKeys($keys, $val=null) {
-		$arr = array();
-		foreach($keys as $key)
-			$arr[$key] = $val;
+	if ($str === 'false' ||
+		$str === 'no' ||
+		$str === '0' ||
+		$str === 'null' ||
+		$str === '')
+		return false;
+	return true;
+}
 
-		return $arr;
-	}
+function getCurrentDomain() {
+	$scheme = (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] != "on") ?
+		'http' : 'https';
+	$pageURL = $scheme . '://' . $_SERVER['SERVER_NAME'];
+	if ($_SERVER['SERVER_PORT'] != '80')
+		$pageURL .= ':'.$_SERVER['SERVER_PORT'];
+	return $pageURL;
+}
 
-	function toColor($num) {
-		return "#".substr("000000".dechex($num),-6);
-	}
+function getCurrentAPIURL() {
+	$pageURL = getCurrentDomain();
+	$pageURL .= parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
+	return $pageURL;
+}
 
-	function stringToBool($str) {
-		$str = trim(strtolower($str));
-		switch($str) {
-		case 'false': 
-		case 'no': 
-		case '0':
-		case null:
-		case 0:
-			return false;
-		default:
-			return true;
-		}
-	}
+function getCurrentFileURL() {
+	$pageURL = getCurrentDomain();
+	$pageURL .= dirname($_SERVER['PHP_SELF']);
+	return $pageURL;
+}
 

@@ -21,7 +21,7 @@ class APIPost {
 		$this->published = $published;
 		$this->title = $title;
 		$this->title_slug = $title_slug;
-		$this->status = $status;
+		$this->status = (int)$status;
 		$this->commentable = (boolean)$commentable;
 		$this->image = $image;
 		$this->content = $content;

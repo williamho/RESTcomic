@@ -100,6 +100,18 @@ class DatabaseWrapper {
 			$stmt->bindValue(":$column",$value);
 
 		$stmt->execute();
+
+		if ($table == 'comments') {
+			$query = "
+				UPDATE {$config->tables['posts']} p
+				SET p.comment_count = p.comment_count + 1
+				WHERE p.post_id = :id
+			";
+			$stmt = $this->db->prepare($query);
+			$stmt->bindValue(':id',$obj->post_id);
+			$stmt->execute();
+		}
+
 		return $this->db->lastInsertId($primary);
 	}
 
@@ -190,6 +202,21 @@ class DatabaseWrapper {
 		// Check if post with slug already exists
 		if ($this->rowExists('posts','title_slug',$post->title_slug))
 			$errors->addError(1209); 
+
+		if (!$new) {
+			$query = "
+				SELECT *
+				FROM {$config->tables['posts']} p,
+					{$config->tables['comments']} c
+				WHERE p.post_id = c.post_id
+			";
+			$stmt = $this->db->prepare($query);
+			$stmt->execute();
+			$post->comment_count = $stmt->fetchColumn();
+		}
+		else
+			$post->comment_count = 0;
+			
 
 		/*
 		// Check if user has valid permissions to make a post

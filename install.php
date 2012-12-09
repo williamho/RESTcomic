@@ -56,6 +56,7 @@ $query = "CREATE TABLE {$config->tables['posts']} (
 	timestamp DATETIME NOT NULL,
 	image_url TEXT,
 	content TEXT,
+	comment_count INT UNSIGNED NOT NULL,
 	UNIQUE(title_slug),
 	PRIMARY KEY(post_id),
 	FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE SET DEFAULT
@@ -151,6 +152,10 @@ $samplePost = new Post;
 $samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img',"Header\n-------\n\n>Block\n>\n>Quote\n");
 $db->insertObjectIntoTable($samplePost);
 
+$samplePost = new Post;
+$samplePost->setValues(0,1,"POST NUMBER TWO!",null,0,true,'now','img',"yeah");
+$db->insertObjectIntoTable($samplePost);
+
 // Add sample comment
 $sampleComment = new Comment;
 $sampleComment->setValues(0,1,1,null,'now',null,true,'hi','a name');
@@ -158,6 +163,10 @@ $db->insertObjectIntoTable($sampleComment);
 
 $sampleComment = new Comment;
 $sampleComment->setValues(0,1,0,1,'now',null,true,'content','unreggedguy');
+$db->insertObjectIntoTable($sampleComment);
+
+$sampleComment = new Comment;
+$sampleComment->setValues(0,2,1,null,'now',null,true,'hi','a name');
 $db->insertObjectIntoTable($sampleComment);
 
 // Add sample tag
