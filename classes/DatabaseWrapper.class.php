@@ -191,6 +191,7 @@ class DatabaseWrapper {
 		if ($this->rowExists('posts','title_slug',$post->title_slug))
 			$errors->addError(1209); 
 
+		/*
 		// Check if user has valid permissions to make a post
 		$query = "SELECT g.make_post_perm, g.edit_post_perm
 		          FROM {$config->tables['groups']} g, 
@@ -222,7 +223,7 @@ class DatabaseWrapper {
 				break;
 			}
 		}
-			
+		*/	
 		if (!$errors->isEmpty())
 			throw $errors;
 		return null;
@@ -247,9 +248,10 @@ class DatabaseWrapper {
 				$errors->addError(1304); // Parent comment doesn't exist
 			}
 		}
-		else // Set zero values to null
-			$comment->parent_comment_id = null;
+		else 
+			$comment->parent_comment_id = 0;
 
+		/*
 		// Check if user has valid permissions to make a comment
 		$query = "SELECT g.make_comment_perm, g.edit_comment_perm
 		          FROM {$config->tables['groups']} g, 
@@ -281,6 +283,7 @@ class DatabaseWrapper {
 				break;
 			}
 		}
+		*/
 			
 		if (!$errors->isEmpty())
 			throw $errors;

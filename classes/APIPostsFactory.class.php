@@ -8,7 +8,7 @@ class APIPostsFactory {
 	 * @param array/int $ids
 	 * @return array Posts
 	 */
-	public static function getPostsByIds($ids,$getTags=true,$getGroup=true, 
+	public static function getPostsByIds($ids,$getTags=true,$getGroup=false, 
 				$perPage=POSTS_DEFAULT_NUM,$page=0)
 	{
 		if ((int)$perPage == 0)
@@ -29,7 +29,7 @@ class APIPostsFactory {
 		$upper = ($page+1) * $perPage - 1;
 
 		$query = "
-			SELECT *, u.name AS user_name, g.name AS group_name, 
+			SELECT p.*, u.*, g.*, u.name AS user_name, g.name AS group_name,
 					COUNT(c.comment_id) AS comment_count
 			FROM {$config->tables['posts']} p, 
 				{$config->tables['users']} u,
@@ -52,7 +52,6 @@ class APIPostsFactory {
 		if (empty($ids) || is_null($ids[0]))
 			return array();
 
-		// there's a problem here
 		$idString = intArrayToString($ids);
 
 		if ($getTags) {
@@ -97,6 +96,11 @@ class APIPostsFactory {
 				$post->email
 			);
 
+			if (is_null($apiGroup)) {
+				unset($apiUser->group);
+				$apiUser->group_color = toColor((int)$post->color);
+			}
+
 			
 			$apiPost = new APIPost(
 				$post->post_id,
@@ -115,6 +119,11 @@ class APIPostsFactory {
 		}
 
 		return $apiPosts;
+	}
+
+	public static function getPostBySlug($slug) {
+		global $db, $config;
+		
 	}
 
 	// Find posts that contain all the tags in the $names array

@@ -97,6 +97,7 @@ $query = "CREATE TABLE {$config->tables['comments']} (
 )";
 $db->executeQuery($query);
 
+try{
 /*=====================*
  | Set up default rows |
  *=====================*/
@@ -104,7 +105,7 @@ $db->executeQuery($query);
 $unregGroup = new Group;
 $unregGroup->setValues(0,'Unregistered',UNREG_COLOR,false,
 	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
-	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE);
+	Group::PERM_MAKE_OK, Group::PERM_EDIT_NONE);
 $db->insertObjectIntoTable($unregGroup);
 
 // Set the unregistered group to have group id 0
@@ -155,20 +156,23 @@ $sampleComment = new Comment;
 $sampleComment->setValues(0,1,1,null,'now',null,true,'hi','a name');
 $db->insertObjectIntoTable($sampleComment);
 
+$sampleComment = new Comment;
+$sampleComment->setValues(0,1,0,1,'now',null,true,'content','unreggedguy');
+$db->insertObjectIntoTable($sampleComment);
+
 // Add sample tag
 $sampleTag = new Tag;
 $sampleTag->setValues(0,'tag name',null);
 $db->insertObjectIntoTable($sampleTag);
 
-// Test
-try {
-	$unregUser = new User;
-	$unregUser->setValues(0,1,'name','Unregistered',null);
-	$unregUser->hashPassword();
-	$db->insertObjectIntoTable($unregUser);
-} catch(APIError $e) {
-	echo json_encode($e->getErrors());
-}
+// new user
+$unregUser = new User;
+$unregUser->setValues(0,1,'name','Unregistered',null);
+$unregUser->hashPassword();
+$db->insertObjectIntoTable($unregUser);
 
 $db->addTagsToPost(array('test','test2','test3'),1);
 
+} catch(APIError $e) {
+	echo json_encode($e->getErrors());
+}

@@ -59,6 +59,18 @@ $app->get('/posts/tagged/:tagList', function($tagList) {
 	output($result);
 });
 
+$app->get('/posts/id/:id/comments', function($id) {
+	try { 
+		$id = (int)$id;
+		$comments = APICommentsFactory::getCommentsByPostId($id);
+		$result = new APIResult($comments);
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
 $app->get('/users/id/:idList', function($idList) {
 	try {
 		$ids = explode(',',$idList);

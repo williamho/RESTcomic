@@ -3,7 +3,7 @@ defined('API_PATH') or die('No direct script access.');
 
 class APIUsersFactory {
 	public static function getUsersByIds($ids, $getGroup=true) {
-		global $db;
+		global $db, $config;
 		$ids = (array)$ids;
 		$idString = intArrayToString($ids);
 		$users = array();
@@ -12,7 +12,8 @@ class APIUsersFactory {
 		if ($getGroup) {
 			$query = "
 				SELECT *, g.name as group_name 
-				FROM users u, groups g
+				FROM {$config->tables['users']} u, 
+					{$config->tables['groups']} g
 				WHERE u.user_id IN ($idString)
 					AND u.group_id = g.group_id
 			";
@@ -20,7 +21,7 @@ class APIUsersFactory {
 		else {
 			$query = "
 				SELECT *
-				FROM users u
+				FROM {$config->tables['users']} u
 				WHERE u.user_id IN ($idString)
 			";
 		}
