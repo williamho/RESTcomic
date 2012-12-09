@@ -21,7 +21,7 @@ class APIGroup {
 			);
 		}
 		else {
-			$this->down = '/groups/id/'.$id;
+			$this->down = getCurrentFileURL().'/groups/id/'.$id;
 		}
 	}
 

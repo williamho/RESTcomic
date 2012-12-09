@@ -217,40 +217,6 @@ class DatabaseWrapper {
 		else
 			$post->comment_count = 0;
 			
-
-		/*
-		// Check if user has valid permissions to make a post
-		$query = "SELECT g.make_post_perm, g.edit_post_perm
-		          FROM {$config->tables['groups']} g, 
-			           {$config->tables['users']} u
-			      WHERE u.group_id = g.group_id AND u.user_id = :user_id";
-		$stmt = $this->db->prepare($query);
-		$stmt->bindParam(':user_id',$post->user_id);
-		$stmt->execute();
-		$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-		if ($new) {
-			switch($result[0]['make_post_perm']) {
-			case Group::PERM_MAKE_NONE:
-				$errors->addError(1206); // Invalid post permissions
-				break;
-			case Group::PERM_MAKE_HIDDEN:
-				$post->status = Post::STATUS_HIDDEN;
-				break;
-			}
-		}
-		else {
-			switch($result[0]['edit_post_perm']) {
-			case Group::PERM_EDIT_NONE:
-				$errors->addError(1207); // Invalid edit permissions
-				break;
-			case Group::PERM_EDIT_OWN: // Figure out a way to handle this
-				break;
-			case Group::PERM_EDIT_GROUP:
-				break;
-			}
-		}
-		*/	
 		if (!$errors->isEmpty())
 			throw $errors;
 		return null;
@@ -277,40 +243,6 @@ class DatabaseWrapper {
 		}
 		else 
 			$comment->parent_comment_id = 0;
-
-		/*
-		// Check if user has valid permissions to make a comment
-		$query = "SELECT g.make_comment_perm, g.edit_comment_perm
-		          FROM {$config->tables['groups']} g, 
-			           {$config->tables['users']} u
-			      WHERE u.group_id = g.group_id AND u.user_id = :user_id";
-		$stmt = $this->db->prepare($query);
-		$stmt->bindParam(':user_id',$comment->user_id);
-		$stmt->execute();
-		$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-		if ($new) {
-			switch($result[0]['make_comment_perm']) {
-			case Group::PERM_MAKE_NONE:
-				$errors->addError(1305); // Invalid post permissions
-				break;
-			case Group::PERM_MAKE_HIDDEN:
-				$post->visible = false;
-				break;
-			}
-		}
-		else {
-			switch($result[0]['edit_comment_perm']) {
-			case Group::PERM_EDIT_NONE:
-				$errors->addError(1306); // Invalid edit permissions
-				break;
-			case Group::PERM_EDIT_OWN: // Figure out a way to handle this
-				break;
-			case Group::PERM_EDIT_GROUP:
-				break;
-			}
-		}
-		*/
 			
 		if (!$errors->isEmpty())
 			throw $errors;
@@ -375,5 +307,79 @@ class DatabaseWrapper {
 		foreach ($tags as $tag) 
 			$this->addTagToPost($tag,$post_id);
 	}
+
+	public function getPostAuthor($post_id) {
+		if (!is_int($id) || !ctype_digit($id))
+			throw new APIError(1201); // Invalid post ID
+
+		$query = "
+			SELECT u.*
+			FROM {$config->tables['users']} u,
+				{$config->tables['posts']} p
+			WHERE p.user_id = u.user_id
+				AND p.post_id = :post_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':post_id',$post_id);
+		$stmt->execute();
+		$result = $stmt->fetchObject();
+		return $result;
+	}
+
+	public function deleteRowFromTable($tableName,$row_id) {
+		$primary = $this->getPrimary($tableName);
+		$query = "
+			DELETE FROM $tableName
+			WHERE $primary = $row_id
+		";
+		$result = $this->db->query($query);
+		if ($result === false)
+			throw new APIError(2007);
+	}
+
+	public function deletePost($post_id) {
+		global $config;
+		$query = "
+			DELETE FROM {$config->tables['posts']} 
+			WHERE post_id = :post_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':post_id',$post_id);
+		if (!$stmt->execute())
+			throw new APIError(2007); // db problem
+
+		// Now delete comments made on the post
+		$query = "
+			DELETE FROM {$config->tables['comments']} 
+			WHERE post_id = :post_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':post_id',$post_id);
+		if (!$stmt->execute())
+			throw new APIError(2007); 
+
+		// Delete posttags rows
+		$query = "
+			DELETE FROM {$config->tables['post_tags']} 
+			WHERE post_id = :post_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':post_id',$post_id);
+		if (!$stmt->execute())
+			throw new APIError(2007);
+
+		// Delete orphan tags
+		$query = "
+			DELETE FROM {$config->tables['tags']}
+			WHERE tag_id NOT IN (
+				SELECT tag_id
+				FROM {$config->tables['post_tags']}
+			)
+		";
+		if (!$this->db->query($query))
+			throw new APIError(2007);
+
+	}
+
 }
 

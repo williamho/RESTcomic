@@ -4,6 +4,8 @@ defined('API_PATH') or die('No direct script access.');
 class APICommentsFactory {
 	public static function getCommentsByPostId($id,$nested=true) {
 		global $db,$config;
+		if (!is_int($id) || !ctype_digit($id))
+			throw new APIError(1201); // Invalid post ID
 		$id = (int)$id;
 
 		$query = "
@@ -82,7 +84,7 @@ class APICommentsFactory {
 	public static function getCommentInfo($postId,$count) {
 		return array(
 			'count' => (int)$count,
-			'down' => "/posts/id/$postId/comments"
+			'down' => getCurrentFileURL() . "/posts/id/$postId/comments"
 		);
 	}
 

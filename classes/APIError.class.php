@@ -53,6 +53,7 @@ class APIError extends Exception {
 		case 2004: $msg = 'Invalid timestamp'; break;
 		case 2005: $msg = 'Expired timestamp'; break;
 		case 2006: $msg = 'Invalid parameters'; break;
+		case 2007: $msg = 'Database error'; break;
 
 		// User errors
 		case 1001: $msg = 'Invalid user ID'; break;
@@ -91,6 +92,7 @@ class APIError extends Exception {
 		case 1209: $msg = 'Post already exists with this title slug'; break;
 		case 1210: $msg = "Invalid format specified (try 'html' or 'md')"; 
 							break;
+		case 1211: $msg = 'Missing POST data'; break;
 
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;

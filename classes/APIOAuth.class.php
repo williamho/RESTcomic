@@ -26,7 +26,8 @@ class APIOAuth {
 			throw new APIError(2005); // Expired timestamp
 
 		$query = "
-			SELECT u.user_id, u.api_key, g.admin_perm AS admin,
+			SELECT u.user_id, u.api_key, g.group_id,
+				g.admin_perm AS admin,
 				g.make_post_perm AS make_post, 
 				g.edit_post_perm AS edit_post,
 				g.make_comment_perm AS make_comment, 

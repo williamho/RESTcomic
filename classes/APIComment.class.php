@@ -5,8 +5,8 @@ class APIComment {
 	public $id;
 	public $post_id;
 	public $timestamp;
-	public $content;
 	public $author;
+	public $content;
 	public $parent;
 
 	function __construct($id,$post_id,$timestamp,$content,$author,$parent) {
