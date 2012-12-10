@@ -73,7 +73,7 @@ class APICommentsFactory {
 	}
 
 	public static function getCommentsBetweenIds($from=null,$to=null,
-				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=1)
+				$reverse=true,$perPage=POSTS_DEFAULT_NUM,$page=1)
 	{
 		global $db, $config;
 
@@ -99,6 +99,8 @@ class APICommentsFactory {
 			FROM {$config->tables['comments']} c
 			WHERE c.comment_id <= :to 
 				AND c.comment_id >= :from
+			ORDER BY c.comment_id $desc 
+			LIMIT $lower,$perPage
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':from',$from);
@@ -114,6 +116,57 @@ class APICommentsFactory {
 			return array();
 
 		return self::getCommentsByIds($ids,$reverse,$perPage,0);
+	}
+
+	public static function getCommentsByAuthorId($id,$reverse=true,
+			$perPage=POSTS_DEFAULT_NUM,$page=1)
+	{
+		global $config, $db;
+		$id = (int)$id;
+		$query = "
+			SELECT c.comment_id
+			FROM {$config->tables['users']} u, 
+				{$config->tables['comments']} c 
+			WHERE u.user_id = :id
+				AND u.user_id = c.user_id
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':id',$id);
+		$stmt->execute();
+
+		$commentIds = array();
+		while($result = $stmt->fetchObject())
+			array_push($commentIds,(int)$result->comment_id);
+		$stmt->closeCursor();
+
+		if (empty($commentIds))
+			return array();
+		return self::getCommentsByIds($commentIds,$reverse,$perPage,$page);
+	}
+
+	public static function getCommentsByAuthorLogin($login,$reverse=true,
+			$perPage=POSTS_DEFAULT_NUM,$page=1)
+	{
+		global $config, $db;
+		$query = "
+			SELECT c.comment_id
+			FROM {$config->tables['users']} u, 
+				{$config->tables['comments']} c 
+			WHERE u.login = :login
+				AND u.user_id = c.user_id
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':login',$login);
+		$stmt->execute();
+
+		$commentIds = array();
+		while($result = $stmt->fetchObject())
+			array_push($commentIds,(int)$result->comment_id);
+		$stmt->closeCursor();
+
+		if (empty($commentIds))
+			return array();
+		return self::getCommentsByIds($commentIds,$reverse,$perPage,$page);
 	}
 
 	public static function getCommentsByPostSlug($slug,$nested=true) {

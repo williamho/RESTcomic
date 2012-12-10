@@ -112,7 +112,7 @@ $app->get('/posts/id/:idList', function($idList) use($app) {
 	$user_id = getUserId();
 	try { 
 		$ids = explode(',',$idList);
-		$perPage = $app->request()->get('perPage');
+		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
 		$desc = stringToBool($app->request()->get('reverse'));
 
@@ -133,7 +133,7 @@ $app->get('/posts/by_author/id/:id', function($id) use($app) {
 	// Get posts by author ID
 	$user_id = getUserId();
 	try { 
-		$perPage = $app->request()->get('perPage');
+		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
 		$desc = stringToBool($app->request()->get('reverse'));
 
@@ -154,7 +154,7 @@ $app->get('/posts/by_author/:login', function($login) use($app) {
 	// Get posts by author login
 	$user_id = getUserId();
 	try { 
-		$perPage = $app->request()->get('perPage');
+		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
 		$desc = stringToBool($app->request()->get('reverse'));
 
@@ -204,7 +204,7 @@ $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
 	try { 
 		$and = !stringToBool($app->request()->get('any'));
 		$tags = explode(',',$tagList);
-		$perPage = $app->request()->get('perPage');
+		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
 		$desc = stringToBool($app->request()->get('reverse'));
 		
@@ -227,6 +227,7 @@ $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
 				$include,$exclude,$and,$desc,$perPage,$page,$user_id);
 
 		$result = new APIResult($posts);
+		paginate($result);
 		setUp($result,'/posts');
 		convertMarkdown($result->response); 
 	}
@@ -286,6 +287,7 @@ $app->get('/comments', function() use($app) {
 });
 
 $app->post('/comments', function() {
+	// Post a comment
 	try {
 		global $db;
 		$user = APIOAuth::validate();
@@ -298,10 +300,11 @@ $app->post('/comments', function() {
 		$user_id = (int)$user->user_id;
 		if (($parent = param_post('parent_comment_id'))!=='') {
 			// Check if parent comment even exists
-			$post_id = getPostIdFromCommentId($parent);
+			$parent = (int)$parent;
+			$post_id = $db->getPostIdFromCommentId($parent);
 		}
 		else {
-			$post_id = param_post('post_id');
+			$post_id = (int)param_post('post_id');
 			$parent = null;
 		}
 		if (!($timestamp = param_post('timestamp')))
@@ -312,8 +315,12 @@ $app->post('/comments', function() {
 		$name = param_post('name');
 
 		// Check if post is commentable if user is not admin
+		$posts = $db->getObjectsFromTableByIds('posts',$post_id);
+
+		if (empty($posts))
+			throw new APIError(1201); // Post doesn't exist
 		if (!$user->admin) {
-			$post = $db->getObjectsFromTableByIds('Posts',$post_id);
+			$post = $posts[0];
 			if (!$post->commentable)
 				throw new APIError(1307); // Invalid permissions on this post
 		}
@@ -322,6 +329,10 @@ $app->post('/comments', function() {
 		$comment->setValues(0,$post_id,$user_id,$parent,$timestamp,
 			$ip,$visible,$content,$name);
 		$comment_id = $db->insertObjectIntoTable($comment);
+
+		$result = new APIResult(APICommentsFactory::getCommentsByIds(
+			$post_id)); 
+		setUp($result,'/posts/id/'.$post_id.'/comments');
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -333,7 +344,7 @@ $app->get('/comments/id/:idList', function($idList) use($app) {
 	// Get comments by comma-separated list of IDs
 	try {
 		$ids = explode(',',$idList);
-		$perPage = $app->request()->get('perPage');
+		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
 		$desc = stringToBool($app->request()->get('reverse'));
 
@@ -349,7 +360,43 @@ $app->get('/comments/id/:idList', function($idList) use($app) {
 	output($result);
 });
 
+$app->get('/comments/by_author/id/:id', function($id) use($app) {
+	// Get comments by author ID
+	try {
+		$perPage = $app->request()->get('perpage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
 
+		$comments = APICommentsFactory::getCommentsByAuthorId($id,$desc,
+			$perPage,$page);
+		$result = new APIResult($comments);
+		paginate($result);
+		setUp($result,'/comments');
+	}
+	catch (APIError $e) {
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->get('/comments/by_author/:login', function($login) use($app) {
+	// Get comments by author login
+	try {
+		$perPage = $app->request()->get('perpage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
+
+		$comments = APICommentsFactory::getCommentsByAuthorLogin($login,
+			$desc,$perPage,$page);
+		$result = new APIResult($comments);
+		paginate($result);
+		setUp($result,'/comments');
+	}
+	catch (APIError $e) {
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
 $app->get('/users/id/:idList', function($idList) {
 	try {
 		$ids = explode(',',$idList);

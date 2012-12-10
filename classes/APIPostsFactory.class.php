@@ -131,7 +131,7 @@ class APIPostsFactory {
 	}
 
 	public static function getPostsBetweenIds($from=null,$to=null,
-				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=1,
+				$reverse=true,$perPage=POSTS_DEFAULT_NUM,$page=1,
 				$user_id=0,$getTags=true,$getGroup=false)
 	{
 		global $db, $config;
@@ -222,7 +222,7 @@ class APIPostsFactory {
 		if (empty($postIds))
 			return array();
 		return self::getPostsByIds($postIds,$reverse,$perPage,
-					0,$user_id,$getTags,$getGroup);
+					$page,$user_id,$getTags,$getGroup);
 	}
 
 	public static function getPostsByTagsExclude($include,$exclude,$and=true,
@@ -274,7 +274,7 @@ class APIPostsFactory {
 					0,$user_id,$getTags,$getGroup);
 	}
 		
-	public static function getPostsByAuthorId($id,$reverse=false,
+	public static function getPostsByAuthorId($id,$reverse=true,
 				$perPage=POSTS_DEFAULT_NUM,$page=1,$user_id=0,
 				$getTags=true,$getGroup=false)
 	{
@@ -302,7 +302,7 @@ class APIPostsFactory {
 					0,$user_id,$getTags,$getGroup);
 	}
 
-	public static function getPostsByAuthorLogin($login,$reverse=false,
+	public static function getPostsByAuthorLogin($login,$reverse=true,
 				$perPage=POSTS_DEFAULT_NUM,$page=1,$user_id=0,
 				$getTags=true,$getGroup=false)
 	{

@@ -393,13 +393,14 @@ class DatabaseWrapper {
 		global $config;
 		$query = "
 			SELECT p.post_id
-			FROM {$config->tables['posts']} p
+			FROM {$config->tables['posts']} p,
 				{$config->tables['comments']} c
 			WHERE p.post_id = c.post_id
 				AND c.comment_id = :comment_id
 		";
+		$comment_id = (int)$comment_id;
 		$stmt = $this->db->prepare($query);
-		$stmt->bindParam(':comment_id',(int)$comment_id);
+		$stmt->bindParam(':comment_id',$comment_id);
 		$stmt->execute();
 		$result = $stmt->fetchColumn();
 		return $result;
