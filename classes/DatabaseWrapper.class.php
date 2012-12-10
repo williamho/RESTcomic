@@ -335,6 +335,25 @@ class DatabaseWrapper {
 		return $result;
 	}
 
+	public function getCommentAuthor($comment_id) {
+		if (!is_int($id) || !ctype_digit($id))
+			throw new APIError(1301); // Invalid comment ID
+
+		$query = "
+			SELECT u.*
+			FROM {$config->tables['users']} u,
+				{$config->tables['comments']} c
+			WHERE c.user_id = u.user_id
+				AND c.comment_id = :comment_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':comment_id',$comment_id);
+		$stmt->execute();
+		$result = $stmt->fetchObject();
+		$stmt->closeCursor();
+		return $result;
+	}
+
 	public function deleteRowFromTable($tableName,$row_id) {
 		$primary = $this->getPrimary($tableName);
 		$query = "
@@ -387,6 +406,44 @@ class DatabaseWrapper {
 		";
 		if (!$this->db->query($query))
 			throw new APIError(2007);
+	}
+
+	public function deleteComment($comment_id) {
+		global $config;
+		// First check if comment has child comments
+		$query = "
+			SELECT 1
+			FROM {$config->tables['comments']} c
+			WHERE c.parent_comment_id = :comment_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':comment_id',$comment_id);
+		$stmt->execute();
+		$stmt->closeCursor();
+	
+		// Child comments exist. Don't actually delete the comment.
+		if ($stmt->rowCount()) {
+			$query = "
+				UPDATE {$config->tables['comments']} c
+				SET c.user_id = 0, c.content = '[deleted]',
+					c.name = 'deleted'
+				WHERE c.comment_id = :comment_id
+			";
+			$stmt = $this->db->prepare($query);
+			$stmt->bindParam(':comment_id',$comment_id);
+			$stmt->execute();
+			$stmt->closeCursor();
+			return;
+		}
+
+		$query = "
+			DELETE FROM {$config->tables['comments']} 
+			WHERE comment_id = :comment_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':comment_id',$comment_id);
+		$stmt->execute();
+		$stmt->closeCursor();
 	}
 
 	public function getPostIdFromCommentId($comment_id) {

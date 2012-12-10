@@ -18,9 +18,6 @@ $app->error(function(\Exception $e) {
 	output($result);
 });
 
-$app->get('/', function() {
-});
-
 $app->get('/posts', function() use ($app) {
 	// Get most recent posts
 	try {
@@ -286,7 +283,7 @@ $app->get('/comments', function() use($app) {
 	output($result);
 });
 
-$app->post('/comments', function() {
+$app->post('/posts/id/:post_id/comments', function($post_id) {
 	// Post a comment
 	try {
 		global $db;
@@ -304,12 +301,12 @@ $app->post('/comments', function() {
 			$post_id = $db->getPostIdFromCommentId($parent);
 		}
 		else {
-			$post_id = (int)param_post('post_id');
+			$post_id = (int)$post_id;
 			$parent = null;
 		}
 		if (!($timestamp = param_post('timestamp')))
 			$timestamp = 'now'; 
-		$ip = null;
+		$ip = param_post('ip');
 		$visible = true;
 		$content = param_post('content');
 		$name = param_post('name');
@@ -331,8 +328,36 @@ $app->post('/comments', function() {
 		$comment_id = $db->insertObjectIntoTable($comment);
 
 		$result = new APIResult(APICommentsFactory::getCommentsByIds(
-			$post_id)); 
+			$comment_id)); 
 		setUp($result,'/posts/id/'.$post_id.'/comments');
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->delete('/comments/id/:id', function($id) use($app) {
+	// Delete single comment by comment ID
+	try {
+		global $db;
+		$user = APIOAuth::validate();
+
+		switch($user->edit_post) {
+		case Group::PERM_EDIT_NONE:
+			throw new APIError(1306); // Invalid edit permissions
+			break;
+		case Group::PERM_EDIT_OWN:
+			$author = $db->getCommentAuthor();
+			if ($author->user_id != $user->user_id)
+				throw new APIError(1306); 
+		case Group::PERM_EDIT_GROUP:
+			$author = $db->getCommentAuthor();
+			if ($author->group_id != $user->group_id)
+				throw new APIError(1306); 
+		}
+		$db->deleteComment($id);
+		$result = new APIResult();
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -429,8 +454,43 @@ $app->put('/put', function () {
     echo 'This is a PUT route';
 });
 
+$app->get('/', function() {
+	$response = array(
+		makeRouteDecription('/posts',
+			'Most recent posts'),
+		makeRouteDecription('/posts/id/1,2,3',
+			'Posts with comma-separated IDs'),
+		makeRouteDecription('/posts/title',
+			'Post with title slug'),
+		makeRouteDecription('/posts/by_author/admin',
+			'Posts by author with name'),
+		makeRouteDecription('/posts/by_author/id/1',
+			'Posts by author with ID'),
+		makeRouteDecription('/posts/tagged/tag1,tag2',
+			'Posts with comma-separated tags'),
+		makeRouteDecription('/comments',
+			'Most recent comments'),
+		makeRouteDecription('/comments/id/1,2,3',
+			'Comments with comma-separated IDs'),
+		makeRouteDecription('/comments/by_author/admin',
+			'Comments by author with name'),
+		makeRouteDecription('/comments/by_author/id/1',
+			'Comments by author with ID'),
+		makeRouteDecription('/groups/id/1,2,3',
+			'Groups with comma-separated IDs')
+	);
+	$result = new APIResult($response);
+	output($result);
+});
 
 $app->run();
+
+function makeRouteDecription($route, $desc) {
+	return array(
+		'about' => $desc,
+		'down' => getCurrentFileURL().$route
+	);
+}
 
 function setUp(APIResult &$content, $uri) {
 	$content->meta['up'] = getCurrentFileURL() . $uri;

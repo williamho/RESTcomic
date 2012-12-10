@@ -257,7 +257,7 @@ class APICommentsFactory {
 						$parent->replies = array();
 					array_push($parent->replies,$apiComment);
 				}
-				unset($apiComment->parent);
+				//unset($apiComment->parent);
 				$mapping[$apiComment->id] = $apiComment;
 			}
 			else
