@@ -43,6 +43,11 @@ $app->get('/posts', function() use ($app) {
 	output($result);
 });
 
+function param_post($key) {
+	global $app;
+	return $app->request()->post($key);
+}
+
 $app->post('/posts', function() use($app) {
 	try {
 		global $db;
@@ -53,32 +58,32 @@ $app->post('/posts', function() use($app) {
 			$app->response()->status(401);
 		}
 
-		$params = $app->request()->post();
-
+		// Check if params are set
 		$user_id = (int)$user->user_id;
-		$title = $params['title'];
-		$status = (int)$params['status'];
+		$title = param_post('title');
+		$status = (int)param_post('status');
 		if ($user->make_post == Group::PERM_MAKE_HIDDEN)
 			$status = Post::STATUS_HIDDEN; // Set the post to hidden
-		if (isset($params['commentable']))
-			$commentable = (bool)$params['commentable'];
+		if (param_post('commentable'))
+			$commentable = (bool)param_post('commentable');
 		else
 			$commentable = false;
-		$timestamp = 'now'; // change later
-		$image = $params['image_url'];
-		$tags = $params['tags'];
-		$content = $params['content'];
+		if (!($timestamp = param_post('timestamp')))
+			$timestamp = 'now'; 
+		$image = param_post('image_url');
+		$tags = param_post('tags');
+		$content = param_post('content');
 
 		$post = new Post;
 		$post->setValues(0,$user_id,$title,null,$status,$commentable,
 			$timestamp,$image,$content);
 		$post_id = $db->insertObjectIntoTable($post);
 
-		$tagsArray = explode(',',$tags);
-		$db->addTagsToPost($tagsArray,$post_id);
-
+		if ($tags !== '') {
+			$tagsArray = explode(',',$tags);
+			$db->addTagsToPost($tagsArray,$post_id);
+		}
 		$result = new APIResult(APIPostsFactory::getPostsByIds($post_id)); 
-		
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -175,6 +180,48 @@ $app->get('/posts/id/:id/comments', function($id) {
 		$comments = APICommentsFactory::getCommentsByPostId($id);
 		$result = new APIResult($comments);
 		setUp($result,'/posts');
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->post('/posts/id/:id/comments', function($id) {
+	try {
+		global $db;
+		$user = APIOAuth::validate();
+
+		if ($user->make_comment == Group::PERM_MAKE_NONE) {
+			throw new APIError(1305); // Invalid comment permissions
+			$app->response()->status(401);
+		}
+		// Check if params are set
+		$user_id = (int)$user->user_id;
+		if ($parent = param_post('parent_comment_id')) {
+			// Check if parent comment even exists
+			$post_id = getPostIdFromCommentId($parent_comment_id);
+		}
+		else
+			$post_id = param_post('post_id');
+		if (!($timestamp = param_post('timestamp')))
+			$timestamp = 'now'; 
+		$ip = null;
+		$visible = true;
+		$content = param_post('content');
+		$name = param_post('name');
+
+		// Check if post is commentable if user is not admin
+		if (!$user->admin) {
+			$post = $db->getObjectsFromTableByIds('Posts',$post_id);
+			if (!$post->commentable)
+				throw new APIError(1307); // Invalid permissions on this post
+		}
+
+		$comment = new Comment;
+		$comment->setValues(0,$post_id,$user_id,$parent,$timestamp,
+			$ip,$visible,$content,$name);
+		$comment_id = $db->insertObjectIntoTable($comment);
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 

@@ -127,6 +127,9 @@ $db->executeQuery($query);
 $query = "ALTER TABLE {$config->tables['users']} AUTO_INCREMENT=1";
 $db->executeQuery($query);
 
+$query = "UPDATE {$config->tables['users']} SET api_key='' 
+	WHERE user_id=0";
+$db->executeQuery($query);
 // Create admin group
 $adminGroup = new Group();
 $adminGroup->setValues(0,'Administrators',ADMIN_COLOR,true,

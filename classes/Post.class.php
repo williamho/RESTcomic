@@ -45,6 +45,8 @@ class Post {
 		// Check title
 		if (!self::checkLength($this->title,'title'))
 			$errors->addError(1202); // title too long
+		if ($this->title === '')
+			$errors->addError(1212); // title cannot be null
 
 		if ($this->title_slug) 
 			$this->title_slug = makeSlug($this->title_slug);

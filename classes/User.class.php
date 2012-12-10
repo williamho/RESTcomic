@@ -1,6 +1,7 @@
 <?php
-require_once 'includes/checks.php';
-require_once 'includes/PasswordHash.php'; 
+defined('API_PATH') or die('No direct script access.');
+require_once API_PATH.'includes/checks.php';
+require_once API_PATH.'includes/PasswordHash.php'; 
 
 class User {
 	public static $hasher;

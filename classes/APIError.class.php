@@ -93,6 +93,7 @@ class APIError extends Exception {
 		case 1210: $msg = "Invalid format specified (try 'html' or 'md')"; 
 							break;
 		case 1211: $msg = 'Missing POST data'; break;
+		case 1212: $msg = 'Title cannot be null'; break;
 
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;
@@ -103,6 +104,8 @@ class APIError extends Exception {
 							break;
 		case 1306: $msg = 'User does not have permission to edit this
 							comment'; break;
+		case 1307: $msg = 'User does not have permission to comment on this
+							post'; break;
 
 		// Tag errors
 		case 1401: $msg = 'Invalid post ID'; break;

@@ -378,8 +378,22 @@ class DatabaseWrapper {
 		";
 		if (!$this->db->query($query))
 			throw new APIError(2007);
-
 	}
 
+	public function getPostIdFromCommentId($comment_id) {
+		global $config;
+		$query = "
+			SELECT p.post_id
+			FROM {$config->tables['posts']} p
+				{$config->tables['comments']} c
+			WHERE p.post_id = c.post_id
+				AND c.comment_id = :comment_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':comment_id',(int)$comment_id);
+		$stmt->execute();
+		$result = $stmt->fetchColumn();
+		return $result;
+	}
 }
 
