@@ -41,7 +41,7 @@ class Comment {
 			$errors->addError(1001); // invalid user id
 
 		// Check post ID
-		if (!is_int($this->post_id))
+		if (!is_int($this->post_id) && !ctype_digit($this->post_id))
 			$errors->addError(1201); // invalid post id
 
 		// Check name

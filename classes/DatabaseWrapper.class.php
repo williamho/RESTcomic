@@ -200,8 +200,14 @@ class DatabaseWrapper {
 			$errors->addError(1009); // User doesn't exist
 		
 		// Check if post with slug already exists
-		if ($this->rowExists('posts','title_slug',$post->title_slug))
-			$errors->addError(1209); 
+		$originalSlug = $post->title_slug;
+		for ($i=1; 
+			$this->rowExists('posts','title_slug',$post->title_slug); 
+			$i++) 
+		{
+			$post->title_slug = $originalSlug.'-'.$i;
+		}
+		//$errors->addError(1209); 
 
 		if (!$new) {
 			$query = "

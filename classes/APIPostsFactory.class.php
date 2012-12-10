@@ -186,28 +186,11 @@ class APIPostsFactory {
 	}
 
 
-	public static function getPostBySlug($slug) {
-		global $db, $config;
-		
-	}
-
 	// Find posts that contain all the tags in the $names array
 	public static function getPostsByTags($names,$and=true,
 				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=0,
 				$user_id=0,$getTags=true,$getGroup=false)
 	{
-		$perPage = (int)$perPage;
-		$page = (int)$page;
-
-		if ($perPage <= 0)
-			$perPage = POSTS_DEFAULT_NUM;
-		else if ($perPage > POSTS_MAX_NUM) 
-			$perPage = POSTS_MAX_NUM;
-		if ($page < 1)
-			$page = 1;
-		$lower = ($page-1) * $perPage;
-		$desc = $reverse ? 'DESC' : '';
-
 		global $db, $config;
 		$names = (array)$names;
 		$nameString = slugArrayToString($names);
@@ -222,16 +205,13 @@ class APIPostsFactory {
 				{$config->tables['tags']} t
 			WHERE pt.tag_id = t.tag_id
 			AND t.name IN ($nameString)
-			AND p.post_id = pt.post_id
+			AND p.post_id = pt.post_id 
 			GROUP BY p.post_id 
 		";
 		if ($and) // Show post IDs for posts that match ALL the tags
-			$query .= "HAVING COUNT(p.post_id) = $numTags";
+			$query .= "HAVING COUNT(p.post_id) = $numTags ";
 
-		$query .= "
-			ORDER BY p.post_id $desc 
-			LIMIT $lower,$perPage
-		";
+		//$query .= "LIMIT $lower,$perPage";
 
 		$stmt = $db->prepare($query);
 		$stmt->execute();
@@ -249,18 +229,6 @@ class APIPostsFactory {
 				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=0,
 				$user_id=0,$getTags=true,$getGroup=false)
 	{
-		$perPage = (int)$perPage;
-		$page = (int)$page;
-
-		if ($perPage <= 0)
-			$perPage = POSTS_DEFAULT_NUM;
-		else if ($perPage > POSTS_MAX_NUM) 
-			$perPage = POSTS_MAX_NUM;
-		if ($page < 1)
-			$page = 1;
-		$lower = ($page-1) * $perPage;
-		$desc = $reverse ? 'DESC' : '';
-
 		global $db, $config;
 		$include = (array)$include;
 		$exclude = (array)$exclude;
@@ -291,10 +259,7 @@ class APIPostsFactory {
 		";
 		if ($and) // Show post IDs for posts that match ALL the tags
 			$query .= "HAVING COUNT(t.tag_id) = $numInclude";
-		$query .= "
-			ORDER BY p.post_id $desc 
-			LIMIT $lower,$perPage
-		";
+		//$query .= "LIMIT $lower,$perPage";
 		echo $query;
 
 		$stmt = $db->prepare($query);
@@ -309,6 +274,81 @@ class APIPostsFactory {
 					0,$user_id,$getTags,$getGroup);
 	}
 		
+	public static function getPostsByAuthorId($id,$reverse=false,
+				$perPage=POSTS_DEFAULT_NUM,$page=1,$user_id=0,
+				$getTags=true,$getGroup=false)
+	{
+		global $config, $db;
+		$id = (int)$id;
+		$query = "
+			SELECT p.post_id
+			FROM {$config->tables['users']} u, 
+				{$config->tables['posts']} p 
+			WHERE u.user_id = :id
+				AND u.user_id = p.user_id
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':id',$id);
+		$stmt->execute();
+
+		$postIds = array();
+		while($result = $stmt->fetchObject())
+			array_push($postIds,(int)$result->post_id);
+		$stmt->closeCursor();
+
+		if (empty($postIds))
+			return array();
+		return self::getPostsByIds($postIds,$reverse,$perPage,
+					0,$user_id,$getTags,$getGroup);
+	}
+
+	public static function getPostsByAuthorLogin($login,$reverse=false,
+				$perPage=POSTS_DEFAULT_NUM,$page=1,$user_id=0,
+				$getTags=true,$getGroup=false)
+	{
+		global $config, $db;
+		$query = "
+			SELECT p.post_id
+			FROM {$config->tables['users']} u, 
+				{$config->tables['posts']} p 
+			WHERE u.login = :login
+				AND u.user_id = p.user_id
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':login',$login);
+		$stmt->execute();
+
+		$postIds = array();
+		while($result = $stmt->fetchObject())
+			array_push($postIds,(int)$result->post_id);
+		$stmt->closeCursor();
+
+		if (empty($postIds))
+			return array();
+		return self::getPostsByIds($postIds,$reverse,$perPage,
+					0,$user_id,$getTags,$getGroup);
+	}
+
+	public static function getPostBySlug($slug,$user_id=0,
+				$getTags=true,$getGroup=false)
+	{
+		global $config, $db;
+		$query = "
+			SELECT p.post_id
+			FROM {$config->tables['posts']} p 
+			WHERE p.title_slug = :slug
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':slug',$slug);
+		$stmt->execute();
+
+		if(!($postId = $stmt->fetchColumn()))
+			return array();
+
+		return self::getPostsByIds((int)$postId,0,0,
+					0,$user_id,$getTags,$getGroup);
+	}
+
 }
 
 

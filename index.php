@@ -22,6 +22,7 @@ $app->get('/', function() {
 });
 
 $app->get('/posts', function() use ($app) {
+	// Get most recent posts
 	try {
 		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
@@ -44,11 +45,13 @@ $app->get('/posts', function() use ($app) {
 });
 
 function param_post($key) {
+	// Get POST parameter if exists
 	global $app;
 	return $app->request()->post($key);
 }
 
 $app->post('/posts', function() use($app) {
+	// Add a new post
 	try {
 		global $db;
 		$user = APIOAuth::validate();
@@ -95,16 +98,24 @@ $app->post('/posts', function() use($app) {
 	output($result);
 });
 
-function getUser() {
-	try {
-		return APIOAuth::validate();
+$app->get('/posts/:slug', function($slug) use($app) {
+	// Get post by title slug
+	$user_id = getUserId();
+	try { 
+		$posts = APIPostsFactory::getPostBySlug($slug,$user_id);
+		$result = new APIResult($posts);
+		setUp($result,'/posts');
+		convertMarkdown($result->response); 
 	}
-	catch (APIError $e) { return null; }
-}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
 
 $app->get('/posts/id/:idList', function($idList) use($app) {
-	// Determine whether or not to show hidden posts
-	$user = getUser();
+	// Get posts by comma-separated IDs
+	$user_id = getUserId();
 	try { 
 		$ids = explode(',',$idList);
 		$perPage = $app->request()->get('perPage');
@@ -112,7 +123,49 @@ $app->get('/posts/id/:idList', function($idList) use($app) {
 		$desc = stringToBool($app->request()->get('reverse'));
 
 		$posts = APIPostsFactory::getPostsByIds($ids,$desc,$perPage,$page,
-			$user->user_id);
+			$user_id);
+		$result = new APIResult($posts);
+		paginate($result);
+		setUp($result,'/posts');
+		convertMarkdown($result->response); 
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->get('/posts/by_author/id/:id', function($id) use($app) {
+	// Get posts by author ID
+	$user_id = getUserId();
+	try { 
+		$perPage = $app->request()->get('perPage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
+
+		$posts = APIPostsFactory::getPostsByAuthorId($id,$desc,$perPage,
+			$page,$user_id);
+		$result = new APIResult($posts);
+		paginate($result);
+		setUp($result,'/posts');
+		convertMarkdown($result->response); 
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->get('/posts/by_author/:login', function($login) use($app) {
+	// Get posts by author login
+	$user_id = getUserId();
+	try { 
+		$perPage = $app->request()->get('perPage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
+
+		$posts = APIPostsFactory::getPostsByAuthorLogin($login,$desc,$perPage,
+			$page,$user_id);
 		$result = new APIResult($posts);
 		paginate($result);
 		setUp($result,'/posts');
@@ -125,6 +178,7 @@ $app->get('/posts/id/:idList', function($idList) use($app) {
 });
 
 $app->delete('/posts/id/:id', function($id) use($app) {
+	// Delete single post by post ID
 	try {
 		global $db;
 		$user = APIOAuth::validate();
@@ -152,7 +206,7 @@ $app->delete('/posts/id/:id', function($id) use($app) {
 });
 
 $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
-	$user = getUser();
+	$user_id = getUserId();
 	try { 
 		$and = !stringToBool($app->request()->get('any'));
 		$tags = explode(',',$tagList);
@@ -171,12 +225,12 @@ $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
 
 		if (empty($exclude))
 			$posts = APIPostsFactory::getPostsByTags($tags,$and,
-				$desc,$perPage,$page,$user->user_id);
+				$desc,$perPage,$page,$user_id);
 		else if (empty($include))
 			throw new APIError(1404); // No included tags
 		else
 			$posts = APIPostsFactory::getPostsByTagsExclude(
-				$include,$exclude,$and,$desc,$perPage,$page,$user->user_id);
+				$include,$exclude,$and,$desc,$perPage,$page,$user_id);
 
 		$result = new APIResult($posts);
 		setUp($result,'/posts');
@@ -190,6 +244,7 @@ $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
 });
 
 $app->get('/posts/id/:id/comments', function($id) {
+	// Get comments by post ID
 	try { 
 		$comments = APICommentsFactory::getCommentsByPostId($id);
 		$result = new APIResult($comments);
@@ -201,7 +256,32 @@ $app->get('/posts/id/:id/comments', function($id) {
 	output($result);
 });
 
-$app->post('/posts/id/:id/comments', function($id) {
+$app->get('/posts/:slug/comments', function($slug) {
+	// Get comments by post slug
+	try { 
+		$comments = APICommentsFactory::getCommentsByPostSlug($slug);
+		$result = new APIResult($comments);
+		setUp($result,'/posts/'.$slug);
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->get('/comments/id/:id', function($id) {
+	try {
+		$comment = APICommentsFactory::getCommentByCommentId($id);
+		$result = new APIResult($comment);
+		setUp($result,'/posts/'.$comment->post_id.'/comments');
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+$app->post('/comments', function() {
 	try {
 		global $db;
 		$user = APIOAuth::validate();
@@ -212,12 +292,14 @@ $app->post('/posts/id/:id/comments', function($id) {
 		}
 		// Check if params are set
 		$user_id = (int)$user->user_id;
-		if ($parent = param_post('parent_comment_id')) {
+		if (($parent = param_post('parent_comment_id'))!=='') {
 			// Check if parent comment even exists
-			$post_id = getPostIdFromCommentId($parent_comment_id);
+			$post_id = getPostIdFromCommentId($parent);
 		}
-		else
+		else {
 			$post_id = param_post('post_id');
+			$parent = null;
+		}
 		if (!($timestamp = param_post('timestamp')))
 			$timestamp = 'now'; 
 		$ip = null;
@@ -289,8 +371,9 @@ function paginate(APIResult &$content) {
 
 	if (isset($params['page'])) 
 		$page = $params['page'];
-	else
-		$params['page'] = 1;
+	else {
+		$params['page'] = $page = 1;
+	}
 
 	if (!isset($params['perpage'])) 
 		$perPage = POSTS_DEFAULT_NUM;
@@ -351,3 +434,10 @@ function convertMarkdown(array &$apiPosts) {
 	}
 }
 
+function getUserId() {
+	try {
+		$user = APIOAuth::validate();
+		return $user->user_id;
+	}
+	catch (APIError $e) { return 0; }
+}
