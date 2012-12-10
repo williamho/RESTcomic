@@ -44,12 +44,6 @@ $app->get('/posts', function() use ($app) {
 	output($result);
 });
 
-function param_post($key) {
-	// Get POST parameter if exists
-	global $app;
-	return $app->request()->post($key);
-}
-
 $app->post('/posts', function() use($app) {
 	// Add a new post
 	try {
@@ -269,18 +263,21 @@ $app->get('/posts/:slug/comments', function($slug) {
 	output($result);
 });
 
-$app->get('/comments/id/:idList', function($idList) use($app) {
+$app->get('/comments', function() use($app) {
+	// Get most recent comments
 	try {
-		$ids = explode(',',$idList);
-		$perPage = $app->request()->get('perPage');
+		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
 		$desc = stringToBool($app->request()->get('reverse'));
 
-		$comments = APICommentsFactory::getCommentsByIds($ids,$desc,
-				$perPage,$page);
+		$from = $app->request()->get('from');
+		$to = $app->request()->get('to');
+
+		$comments = APICommentsFactory::getCommentsBetweenIds(
+			$from,$to,$desc,$perPage,$page);
 		$result = new APIResult($comments);
 		paginate($result);
-		setUp($result,'/comments/');
+		setUp($result,'');
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -331,6 +328,27 @@ $app->post('/comments', function() {
 	}
 	output($result);
 });
+
+$app->get('/comments/id/:idList', function($idList) use($app) {
+	// Get comments by comma-separated list of IDs
+	try {
+		$ids = explode(',',$idList);
+		$perPage = $app->request()->get('perPage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
+
+		$comments = APICommentsFactory::getCommentsByIds($ids,$desc,
+				$perPage,$page);
+		$result = new APIResult($comments);
+		paginate($result);
+		setUp($result,'/comments/');
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
 
 $app->get('/users/id/:idList', function($idList) {
 	try {
@@ -447,4 +465,10 @@ function getUserId() {
 		return $user->user_id;
 	}
 	catch (APIError $e) { return 0; }
+}
+
+function param_post($key) {
+	// Get POST parameter if exists
+	global $app;
+	return $app->request()->post($key);
 }

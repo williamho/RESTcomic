@@ -72,6 +72,50 @@ class APICommentsFactory {
 		return $apiComments;
 	}
 
+	public static function getCommentsBetweenIds($from=null,$to=null,
+				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=1)
+	{
+		global $db, $config;
+
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+		$from = (int)$from;
+		$to = (int)$to;
+		if (!$to)
+			$to = PHP_INT_MAX;
+
+		if ($perPage <= 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		else if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 1)
+			$page = 1;
+		$lower = ($page-1) * $perPage;
+
+		$desc = $reverse ? 'DESC' : '';
+
+		$query = "
+			SELECT c.comment_id
+			FROM {$config->tables['comments']} c
+			WHERE c.comment_id <= :to 
+				AND c.comment_id >= :from
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':from',$from);
+		$stmt->bindParam(':to',$to);
+		$stmt->execute();
+
+		$ids = array();
+		while ($result = (int)$stmt->fetchColumn())
+			array_push($ids,$result);
+		$stmt->closeCursor();
+
+		if (empty($ids))
+			return array();
+
+		return self::getCommentsByIds($ids,$reverse,$perPage,0);
+	}
+
 	public static function getCommentsByPostSlug($slug,$nested=true) {
 		global $config, $db;
 		$query = "
