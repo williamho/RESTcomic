@@ -269,11 +269,18 @@ $app->get('/posts/:slug/comments', function($slug) {
 	output($result);
 });
 
-$app->get('/comments/id/:id', function($id) {
+$app->get('/comments/id/:idList', function($idList) use($app) {
 	try {
-		$comment = APICommentsFactory::getCommentByCommentId($id);
-		$result = new APIResult($comment);
-		setUp($result,'/posts/'.$comment->post_id.'/comments');
+		$ids = explode(',',$idList);
+		$perPage = $app->request()->get('perPage');
+		$page = $app->request()->get('page');
+		$desc = stringToBool($app->request()->get('reverse'));
+
+		$comments = APICommentsFactory::getCommentsByIds($ids,$desc,
+				$perPage,$page);
+		$result = new APIResult($comments);
+		paginate($result);
+		setUp($result,'/comments/');
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 

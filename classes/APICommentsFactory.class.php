@@ -2,12 +2,25 @@
 defined('API_PATH') or die('No direct script access.');
 
 class APICommentsFactory {
-	public static function getCommentByCommentId($id) {
-		global $db,$config;
-		if (!is_int($id) && !ctype_digit($id))
-			throw new APIError(1301); // Invalid comment ID
-		$id = (int)$id;
-	
+	public static function getCommentsByIds($ids,$reverse=false,
+				$perPage=POSTS_DEFAULT_NUM,$page=1) {
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+
+		if ($perPage <= 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		else if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 1)
+			$page = 1;
+
+		$lower = ($page-1) * $perPage;
+
+		global $db, $config;
+		$ids = (array)$ids;
+		$idString = intArrayToString($ids);
+		$desc = $reverse ? 'DESC' : '';
+
 		$query = "
 			SELECT c.*, c.name AS comment_name, g.color, 
 				u.login, u.name AS user_name, u.email, u.website
@@ -15,40 +28,48 @@ class APICommentsFactory {
 			LEFT JOIN {$config->tables['users']} u on u.user_id = c.user_id
 			LEFT JOIN {$config->tables['posts']} p on p.post_id = c.post_id
 			LEFT JOIN {$config->tables['groups']} g on g.group_id = u.group_id
-			WHERE c.comment_id = :comment_id
+			WHERE c.comment_id IN ($idString)
+			ORDER BY c.comment_id $desc 
+			LIMIT $lower,$perPage
 		";
 		$stmt = $db->prepare($query);
-		$stmt->bindParam(':comment_id',$id);
 		$stmt->execute();
-		$comment = $stmt->fetchObject();
-		if (!$comment)
-			return array();
+
+		$comments = array();
+		while($result = $stmt->fetchObject())
+			array_push($comments,$result);
 		$stmt->closeCursor();
+		if (empty($comments) || is_null($comments[0]))
+			return array();
 
-		if ($comment->user_id == 0)
-			$comment->user_name = $comment->comment_name;
+		$apiComments = array();
+		foreach ($comments as $comment) {
+			if ($comment->user_id == 0)
+				$comment->user_name = $comment->comment_name;
 
-		$apiUser = new APIUser(
-			$comment->user_id,
-			null,
-			$comment->login,
-			$comment->user_name,
-			$comment->website,
-			$comment->email
-		);
-		unset($apiUser->group);
-		$apiUser->group_color = toColor((int)$comment->color);
+			$apiUser = new APIUser(
+				$comment->user_id,
+				null,
+				$comment->login,
+				$comment->user_name,
+				$comment->website,
+				$comment->email
+			);
+			unset($apiUser->group);
+			$apiUser->group_color = toColor((int)$comment->color);
 
-		$apiComment = new APIComment(
-			$comment->comment_id,
-			$comment->post_id,
-			$comment->timestamp,
-			$comment->content,
-			$apiUser,
-			$comment->parent_comment_id
-		);
-		
-		return $apiComment;
+			$apiComment = new APIComment(
+				$comment->comment_id,
+				$comment->post_id,
+				$comment->timestamp,
+				$comment->content,
+				$apiUser,
+				$comment->parent_comment_id
+			);
+			
+			array_push($apiComments,$apiComment);
+		}
+		return $apiComments;
 	}
 
 	public static function getCommentsByPostSlug($slug,$nested=true) {
