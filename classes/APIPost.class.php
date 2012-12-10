@@ -21,7 +21,13 @@ class APIPost {
 		$this->published = $published;
 		$this->title = $title;
 		$this->title_slug = $title_slug;
-		$this->status = (int)$status;
+		switch ($status) {
+		case 0: $this->status = 'visible'; break;
+		case 1: $this->status = 'scheduled'; break;
+		case 2: $this->status = 'hidden'; break;
+		default: $this->status = 'undefined'; break;
+		}
+
 		$this->commentable = (boolean)$commentable;
 		$this->image = $image;
 		$this->content = $content;

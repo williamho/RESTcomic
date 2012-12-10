@@ -83,7 +83,10 @@ $app->post('/posts', function() use($app) {
 			$tagsArray = explode(',',$tags);
 			$db->addTagsToPost($tagsArray,$post_id);
 		}
-		$result = new APIResult(APIPostsFactory::getPostsByIds($post_id)); 
+		$result = new APIResult(APIPostsFactory::getPostsByIds(
+			$post_id,0,0,0,$user->user_id)); 
+		setUp($result,'/posts');
+		convertMarkdown($result->response); 
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
@@ -92,14 +95,24 @@ $app->post('/posts', function() use($app) {
 	output($result);
 });
 
+function getUser() {
+	try {
+		return APIOAuth::validate();
+	}
+	catch (APIError $e) { return null; }
+}
+
 $app->get('/posts/id/:idList', function($idList) use($app) {
+	// Determine whether or not to show hidden posts
+	$user = getUser();
 	try { 
 		$ids = explode(',',$idList);
 		$perPage = $app->request()->get('perPage');
 		$page = $app->request()->get('page');
 		$desc = stringToBool($app->request()->get('reverse'));
 
-		$posts = APIPostsFactory::getPostsByIds($ids,$desc,$perPage,$page);
+		$posts = APIPostsFactory::getPostsByIds($ids,$desc,$perPage,$page,
+			$user->user_id);
 		$result = new APIResult($posts);
 		paginate($result);
 		setUp($result,'/posts');
@@ -139,6 +152,7 @@ $app->delete('/posts/id/:id', function($id) use($app) {
 });
 
 $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
+	$user = getUser();
 	try { 
 		$and = !stringToBool($app->request()->get('any'));
 		$tags = explode(',',$tagList);
@@ -157,12 +171,12 @@ $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
 
 		if (empty($exclude))
 			$posts = APIPostsFactory::getPostsByTags($tags,$and,
-				$desc,$perPage,$page);
+				$desc,$perPage,$page,$user->user_id);
 		else if (empty($include))
 			throw new APIError(1404); // No included tags
 		else
 			$posts = APIPostsFactory::getPostsByTagsExclude(
-				$include,$exclude,$and,$desc,$perPage,$page);
+				$include,$exclude,$and,$desc,$perPage,$page,$user->user_id);
 
 		$result = new APIResult($posts);
 		setUp($result,'/posts');
@@ -179,7 +193,7 @@ $app->get('/posts/id/:id/comments', function($id) {
 	try { 
 		$comments = APICommentsFactory::getCommentsByPostId($id);
 		$result = new APIResult($comments);
-		setUp($result,'/posts');
+		setUp($result,'/posts/id/'.$id);
 	}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 

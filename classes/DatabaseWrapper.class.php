@@ -285,6 +285,7 @@ class DatabaseWrapper {
 		$stmt->bindParam(':post_id',$post_id);
 		$stmt->bindParam(':tag_id',$tag->tag_id);
 		$stmt->execute();
+		$stmt->closeCursor();
 		
 		// Tag has already been assigned to post
 		if ($stmt->rowCount()) 
@@ -296,6 +297,7 @@ class DatabaseWrapper {
 		$stmt->bindParam(':post_id',$post_id);
 		$stmt->bindParam(':tag_id',$tag->tag_id);
 		$stmt->execute();
+		$stmt->closeCursor();
 	}
 
 	/**
@@ -323,6 +325,7 @@ class DatabaseWrapper {
 		$stmt->bindParam(':post_id',$post_id);
 		$stmt->execute();
 		$result = $stmt->fetchObject();
+		$stmt->closeCursor();
 		return $result;
 	}
 
@@ -395,5 +398,6 @@ class DatabaseWrapper {
 		$result = $stmt->fetchColumn();
 		return $result;
 	}
+
 }
 

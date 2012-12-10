@@ -4,7 +4,7 @@ defined('API_PATH') or die('No direct script access.');
 class APICommentsFactory {
 	public static function getCommentsByPostId($id,$nested=true) {
 		global $db,$config;
-		if (!is_int($id) || !ctype_digit($id))
+		if (!is_int($id) && !ctype_digit($id))
 			throw new APIError(1201); // Invalid post ID
 		$id = (int)$id;
 
@@ -30,6 +30,7 @@ class APICommentsFactory {
 			while ($result = $stmt->fetchObject()) 
 				array_push($comments, $result);
 		}
+		$stmt->closeCursor();
 
 		if (empty($comments))
 			return array();

@@ -9,7 +9,7 @@ class APIPostsFactory {
 	 * @return array Posts
 	 */
 	public static function getPostsByIds($ids,$reverse=false,
-				$perPage=POSTS_DEFAULT_NUM,$page=1,
+				$perPage=POSTS_DEFAULT_NUM,$page=1,$user_id=0,
 				$getTags=true,$getGroup=false)
 	{
 		$perPage = (int)$perPage;
@@ -37,17 +37,23 @@ class APIPostsFactory {
 			FROM {$config->tables['posts']} p 
 			LEFT JOIN {$config->tables['users']} u on u.user_id = p.user_id 
 			LEFT JOIN {$config->tables['groups']} g on g.group_id = u.group_id
-			WHERE p.post_id IN ($idString)
+			WHERE p.post_id IN ($idString) AND 
+				(p.status = 0 OR 
+				(u.user_id = :user_id AND ((u.user_id = p.user_id) OR 
+				(u.group_id = g.group_id AND g.edit_post_perm >= 2)))
+				)
 			ORDER BY p.post_id $desc 
 			LIMIT $lower,$perPage
 		";
 		$stmt = $db->prepare($query);
+		$stmt->bindParam(':user_id',$user_id);
 		$stmt->execute();
 		$ids = array();
 		while ($result = $stmt->fetchObject()) {
 			array_push($posts, $result);
 			array_push($ids, $result->post_id);
 		}
+		$stmt->closeCursor();
 		if (empty($ids) || is_null($ids[0]))
 			return array();
 
@@ -69,6 +75,7 @@ class APIPostsFactory {
 			$stmt->execute();
 			while ($result = $stmt->fetchObject()) 
 				array_push($tags[$result->post_id],$result->tag_name);
+			$stmt->closeCursor();
 		}
 
 		$apiPosts = array();
@@ -125,7 +132,7 @@ class APIPostsFactory {
 
 	public static function getPostsBetweenIds($from=null,$to=null,
 				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=1,
-				$getTags=true,$getGroup=false)
+				$user_id=0,$getTags=true,$getGroup=false)
 	{
 		global $db, $config;
 
@@ -143,30 +150,39 @@ class APIPostsFactory {
 		if ($page < 1)
 			$page = 1;
 		$lower = ($page-1) * $perPage;
+
 		$desc = $reverse ? 'DESC' : '';
 
 		$query = "
 			SELECT p.post_id
-			FROM {$config->tables['posts']} p
+			FROM {$config->tables['posts']} p 
+			LEFT JOIN {$config->tables['users']} u on u.user_id = p.user_id 
+			LEFT JOIN {$config->tables['groups']} g on g.group_id = u.group_id
 			WHERE p.post_id >= :from
-				AND p.post_id <= :to
+				AND p.post_id <= :to AND
+				(p.status = 0 OR 
+				(u.user_id = :user_id AND ((u.user_id = p.user_id) OR 
+				(u.group_id = g.group_id AND g.edit_post_perm >= 2)))
+				)
 			ORDER BY p.post_id $desc 
 			LIMIT $lower,$perPage
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':from',$from);
 		$stmt->bindParam(':to',$to);
+		$stmt->bindParam(':user_id',$user_id);
 		$stmt->execute();
 
 		$ids = array();
 		while ($result = (int)$stmt->fetchColumn())
 			array_push($ids,$result);
+		$stmt->closeCursor();
 
 		if (empty($ids))
 			return array();
 
 		return self::getPostsByIds($ids,$reverse,$perPage,
-					0,$getTags,$getGroup);
+					0,$user_id,$getTags,$getGroup);
 	}
 
 
@@ -178,7 +194,7 @@ class APIPostsFactory {
 	// Find posts that contain all the tags in the $names array
 	public static function getPostsByTags($names,$and=true,
 				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=0,
-				$getTags=true,$getGroup=false)
+				$user_id=0,$getTags=true,$getGroup=false)
 	{
 		$perPage = (int)$perPage;
 		$page = (int)$page;
@@ -211,6 +227,7 @@ class APIPostsFactory {
 		";
 		if ($and) // Show post IDs for posts that match ALL the tags
 			$query .= "HAVING COUNT(p.post_id) = $numTags";
+
 		$query .= "
 			ORDER BY p.post_id $desc 
 			LIMIT $lower,$perPage
@@ -220,16 +237,17 @@ class APIPostsFactory {
 		$stmt->execute();
 		while ($result = $stmt->fetchObject()) 
 			array_push($postIds,(int)$result->post_id);
+		$stmt->closeCursor();
 
 		if (empty($postIds))
 			return array();
 		return self::getPostsByIds($postIds,$reverse,$perPage,
-					0,$getTags,$getGroup);
+					0,$user_id,$getTags,$getGroup);
 	}
 
 	public static function getPostsByTagsExclude($include,$exclude,$and=true,
 				$reverse=false,$perPage=POSTS_DEFAULT_NUM,$page=0,
-				$getTags=true,$getGroup=false)
+				$user_id=0,$getTags=true,$getGroup=false)
 	{
 		$perPage = (int)$perPage;
 		$page = (int)$page;
@@ -283,11 +301,12 @@ class APIPostsFactory {
 		$stmt->execute();
 		while ($result = $stmt->fetchObject()) 
 			array_push($postIds,(int)$result->post_id);
+		$stmt->closeCursor();
 
 		if (empty($postIds))
 			return array();
 		return self::getPostsByIds($postIds,$reverse,$perPage,
-					0,$getTags,$getGroup);
+					0,$user_id,$getTags,$getGroup);
 	}
 		
 }
