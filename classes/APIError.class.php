@@ -73,6 +73,7 @@ class APIError extends Exception {
 			User::$limits['password_min'].' characters long'; break;
 		case 1014: $msg = 'New users must be in default group'; break;
 		case 1015: $msg = 'Invalid permissions to edit user info'; break;
+		case 1016: $msg = 'Incorrect old password'; break;
 
 		// Group errors
 		case 1101: $msg = 'Invalid group ID'; break;

@@ -54,7 +54,7 @@ class User {
 		$errors = new APIError();
 
 		// Check ID
-		if (!is_int($this->user_id))
+		if (!is_int($this->user_id) && !ctype_digit($this->user_id))
 			$errors->addError(1001); // invalid id
 		
 		// Check login
@@ -76,7 +76,7 @@ class User {
 			$errors->addError(1005); // name too long
 		
 		// Check group
-		if (!is_int($this->group_id))
+		if (!is_int($this->group_id) && !ctype_digit($this->group_id))
 			$errors->addError(1006); // invalid group
 
 		// Check email

@@ -208,15 +208,15 @@ class DatabaseWrapper {
 		$errors = new APIError();
 
 		// Check if user is valid
-		if ($index = $this->rowExists('users','login',$user->login))
-			if ($index != $user->user_id)
-				$errors->addError(1008); // User already exists
+		$index = $this->rowExists('users','login',$user->login);
+		if (($index !== false && $index != $user->user_id) || $index === '0')
+			$errors->addError(1008); // User already exists
 
 		if ($new && $user->group_id != 2) 
 			$errors->addError(1014); // New users must be in default group
 
 		// Check if group is valid
-		if (!$this->rowExists('groups','group_id',$user->group_id))
+		if (is_null($this->rowExists('groups','group_id',$user->group_id)))
 			$errors->addError(1109); // Group doesn't exist
 
 		if (!$errors->isEmpty())

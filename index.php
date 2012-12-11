@@ -509,10 +509,19 @@ $app->get('/groups/id/:idList', function($idList) {
 	output($result);
 });
 
-function checkOld(&$new, &$old, $key) {
-	$new->$key = paramPut($key);
-	if ($new->$key == '' || is_null($new->$key))
-		$new->$key = $old->$key;
+//function checkOld(&$new, &$old, $key) {
+	//$new->$key = paramPut($key);
+	//if ($new->$key == '' || is_null($new->$key))
+		//$new->$key = $old->$key;
+//}
+
+function checkOld(&$new, &$old) {
+	foreach ($old as $var=>$val) {
+		if ($var != 'password')
+			$new->$var = paramPut($var);
+		if (!isset($new->$var) || $new->$var == '' || is_null($new->$var))
+			$new->$var = $old->$var;
+	}
 }
 
 //$app->put('/posts', function() use($app) {
@@ -536,21 +545,14 @@ $app->put('/posts/id/:post_id', function($post_id) use($app) {
 				throw new APIError(1207); 
 		}
 
+		//$post_id = paramPut('post_id'); // comment out
 		$oldPost = $db->getObjectsFromTableByIds('posts',$post_id);
+		if (empty($oldPost))
+			throw new APIError(1201);
 		$oldPost = $oldPost[0];
 		$post = new Post;
 		$post->post_id = $post_id;
-		//checkOld($post,$oldPost,'post_id');
-		checkOld($post,$oldPost,'user_id');
-		checkOld($post,$oldPost,'title');	
-			//checkOld($post,$oldPost,'title_slug');	
-		$post->title_slug = null;
-		checkOld($post,$oldPost,'status');	
-		checkOld($post,$oldPost,'commentable',
-				(bool)paramPut('commentable'));	
-		checkOld($post,$oldPost,'timestamp');	
-		checkOld($post,$oldPost,'image_url');	
-		checkOld($post,$oldPost,'content');	
+		checkOld($post,$oldPost);
 		$tags = paramPut('tags');
 
 		$db->insertObjectIntoTable($post,false);
@@ -592,7 +594,7 @@ $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 				throw new APIError(1306); 
 		}
 
-		//$comment_id = paramPut('comment_id');
+		//$comment_id = paramPut('comment_id'); // comment out
 		$oldComment = $db->getObjectsFromTableByIds('comments',$comment_id);
 
 		if (empty($oldComment))
@@ -600,15 +602,9 @@ $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 		$oldComment = $oldComment[0];
 
 		$comment = new Comment;
-		$comment->comment_id = $comment_id;
+		//$comment->comment_id = $comment_id;
 		//checkOld($comment,$oldComment,'comment_id');
-		checkOld($comment,$oldComment,'post_id');
-		checkOld($comment,$oldComment,'user_id');
-		checkOld($comment,$oldComment,'parent_comment_id');
-		checkOld($comment,$oldComment,'ip');
-		checkOld($comment,$oldComment,'visible');
-		checkOld($comment,$oldComment,'content');
-		checkOld($comment,$oldComment,'name');
+		checkOld($comment,$oldComment);
 		
 		$db->insertObjectIntoTable($comment,false);
 		$result = new APIResult(APICommentsFactory::getCommentsByIds(
@@ -621,23 +617,46 @@ $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 	output($result);
 });
 
-$app->put('/users/id/:user_id', function($user_id) {
+//$app->put('/users/id/:user_id', function($user_id) {
+$app->put('/users', function() {
 	try {
 		global $db;
-		$user = APIOAuth::validate();
+		$apiuser = APIOAuth::validate();
 
-		if (!$user->admin || $user->user_id != $user_id)
+		$user_id = paramPut('user_id');//comment out
+
+		if (!$apiuser->admin && $apiuser->user_id != $user_id)
 			throw new APIError(1015);
 
-		// login cannot be changed
-		$group_id = paramPut('group_id');
-		$name = paramPut('name');
+		$oldUser = $db->getObjectsFromTableByIds('users',$user_id);
+		if (empty($oldUser))
+			throw new APIError(1001);
+		$oldUser = $oldUser[0];
 
 		$password = paramPut('password');
 		$confirmpassword = paramPut('confirmpassword');
 		$previouspassword = paramPut('previouspassword');
 
-		if ($password != '');
+		$user = new User;
+		$user->user_id = $user_id;
+		if (!is_null($password) && $password != '' 
+			&& $previouspassword != '') 
+		{
+			if ($password != $confirmpassword)
+				throw new APIError(1010); // PWs don't match
+			if (!User::$hasher->checkPassword(
+				$previouspassword,$oldUser->password))
+				throw new APIError(1016); // invalid old PW
+			$user->password = $password;
+			$user->hashPassword();
+		}
+
+		checkOld($user,$oldUser);
+		$user->login = $oldUser->login; // login cannot be changed
+
+		$db->insertObjectIntoTable($user,false);
+		$result = new APIResult(APIUsersFactory::getUsersByIds($user_id)); 
+		setUp($result,'/users');
 	}
 	catch (APIError $e) {
 		$result = new APIResult(null,$e);
