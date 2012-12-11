@@ -17,8 +17,10 @@ define('USER_ICON_SIZE','32');
 // Gravatar icon rating. Valid options: g, pg, r, x
 define('USER_ICON_RATING','g'); 
 
-define('POSTS_DEFAULT_NUM','10');
-define('POSTS_MAX_NUM','50');
+define('POSTS_DEFAULT_NUM','5');
+define('POSTS_MAX_NUM','25');
+define('COMMENTS_DEFAULT_NUM','10');
+define('COMMENTS_MAX_NUM','50');
 
 /*
  * Stop editing below this line

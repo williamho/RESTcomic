@@ -54,19 +54,19 @@ $app->post('/posts', function() use($app) {
 
 		// Check if params are set
 		$user_id = (int)$user->user_id;
-		$title = param_post('title');
-		$status = (int)param_post('status');
+		$title = paramPost('title');
+		$status = (int)paramPost('status');
 		if ($user->make_post == Group::PERM_MAKE_HIDDEN)
 			$status = Post::STATUS_HIDDEN; // Set the post to hidden
-		if (param_post('commentable'))
-			$commentable = (bool)param_post('commentable');
+		if (paramPost('commentable'))
+			$commentable = (bool)paramPost('commentable');
 		else
 			$commentable = false;
-		if (!($timestamp = param_post('timestamp')))
+		if (!($timestamp = paramPost('timestamp')))
 			$timestamp = 'now'; 
-		$image = param_post('image_url');
-		$tags = param_post('tags');
-		$content = param_post('content');
+		$image = paramPost('image_url');
+		$tags = paramPost('tags');
+		$content = paramPost('content');
 
 		$post = new Post;
 		$post->setValues(0,$user_id,$title,null,$status,$commentable,
@@ -295,7 +295,7 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 		}
 		// Check if params are set
 		$user_id = (int)$user->user_id;
-		if (($parent = param_post('parent_comment_id'))!=='') {
+		if (($parent = paramPost('parent_comment_id'))!=='') {
 			// Check if parent comment even exists
 			$parent = (int)$parent;
 			$post_id = $db->getPostIdFromCommentId($parent);
@@ -304,12 +304,12 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 			$post_id = (int)$post_id;
 			$parent = null;
 		}
-		if (!($timestamp = param_post('timestamp')))
+		if (!($timestamp = paramPost('timestamp')))
 			$timestamp = 'now'; 
-		$ip = param_post('ip');
+		$ip = paramPost('ip');
 		$visible = true;
-		$content = param_post('content');
-		$name = param_post('name');
+		$content = paramPost('content');
+		$name = paramPost('name');
 
 		// Check if post is commentable if user is not admin
 		$posts = $db->getObjectsFromTableByIds('posts',$post_id);
@@ -441,18 +441,17 @@ $app->post('/users', function() {
 	// Add a new user
 	try {
 		global $db;
-		$errors = new APIError();
 
-		$login = param_post('username');
-		$pass = param_post('password');
-		$confirmpass = param_post('confirmpassword');
+		$login = paramPost('username');
+		$pass = paramPost('password');
+		$confirmpass = paramPost('confirmpassword');
 
 		if ($pass !== $confirmpass)
 			throw new APIError(1010);
 
-		$name = param_post('name');
-		$email = param_post('email');
-		$website = param_post('website');
+		$name = paramPost('name');
+		$email = paramPost('email');
+		$website = paramPost('website');
 		$timestamp = null;
 
 		$user = new User;
@@ -461,7 +460,35 @@ $app->post('/users', function() {
 		$user_id = $db->insertObjectIntoTable($user);
 
 		$result = new APIResult(APIUsersFactory::getUsersByIds($user_id));
-		setUp($result,'');
+		setUp($result,'/users');
+	}
+	catch (APIError $e) {
+		$result = new APIResult(null,$e);
+	}
+	output($result);
+});
+
+$app->post('/groups', function() {
+	try {
+		global $db;
+		$user = APIOAuth::validate();
+		if (!$user->admin)
+			throw new APIError(1111);
+
+		$name = paramPost('name');
+		$color = paramPost('color');
+		$admin = (bool)paramPost('admin');
+		$mp = (int)paramPost('make_post');
+		$ep = (int)paramPost('edit_post');
+		$mc = (int)paramPost('make_comment');
+		$ec = (int)paramPost('edit_comment');
+
+		$group = new Group;
+		$group->setValues(0,$name,$color,$admin,$mp,$ep,$mc,$ec);
+		$group_id = $db->insertObjectIntoTable($group);
+
+		$result = new APIResult(APIGroupsFactory::getGroupsByIds($group_id));
+		setUp($result,'/groups');
 	}
 	catch (APIError $e) {
 		$result = new APIResult(null,$e);
@@ -479,12 +506,143 @@ $app->get('/groups/id/:idList', function($idList) {
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
 	}
-
 	output($result);
 });
 
-$app->put('/put', function () {
-    echo 'This is a PUT route';
+function checkOld(&$new, &$old, $key) {
+	$new->$key = paramPut($key);
+	if ($new->$key == '' || is_null($new->$key))
+		$new->$key = $old->$key;
+}
+
+//$app->put('/posts', function() use($app) {
+$app->put('/posts/id/:post_id', function($post_id) use($app) {
+	// Replace a post
+	try {
+		global $db;
+		$user = APIOAuth::validate();
+
+		switch($user->edit_post) {
+		case Group::PERM_EDIT_NONE:
+			throw new APIError(1207); // Invalid edit permissions
+			break;
+		case Group::PERM_EDIT_OWN:
+			$author = $db->getPostAuthor();
+			if ($author->user_id != $user->user_id)
+				throw new APIError(1207); 
+		case Group::PERM_EDIT_GROUP:
+			$author = $db->getPostAuthor();
+			if ($author->group_id != $user->group_id)
+				throw new APIError(1207); 
+		}
+
+		$oldPost = $db->getObjectsFromTableByIds('posts',$post_id);
+		$oldPost = $oldPost[0];
+		$post = new Post;
+		$post->post_id = $post_id;
+		//checkOld($post,$oldPost,'post_id');
+		checkOld($post,$oldPost,'user_id');
+		checkOld($post,$oldPost,'title');	
+			//checkOld($post,$oldPost,'title_slug');	
+		$post->title_slug = null;
+		checkOld($post,$oldPost,'status');	
+		checkOld($post,$oldPost,'commentable',
+				(bool)paramPut('commentable'));	
+		checkOld($post,$oldPost,'timestamp');	
+		checkOld($post,$oldPost,'image_url');	
+		checkOld($post,$oldPost,'content');	
+		$tags = paramPut('tags');
+
+		$db->insertObjectIntoTable($post,false);
+
+		if ($tags != '') {
+			$tagsArray = explode(',',$tags);
+			$db->addTagsToPost($tagsArray,$post_id);
+		}
+
+		$result = new APIResult(APIPostsFactory::getPostsByIds(
+			$post_id,0,0,0,$user->user_id)); 
+		setUp($result,'/posts');
+		convertMarkdown($result->response);
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
+//$app->put('/comments',function() use($app) {
+$app->put('/comments/id/:comment_id',function($comment_id) use($app) {
+	// Replace comment
+	try {
+		global $db;
+		$user = APIOAuth::validate();
+
+		switch($user->edit_post) {
+		case Group::PERM_EDIT_NONE:
+			throw new APIError(1306); // Invalid edit permissions
+			break;
+		case Group::PERM_EDIT_OWN:
+			$author = $db->getCommentAuthor();
+			if ($author->user_id != $user->user_id)
+				throw new APIError(1306); 
+		case Group::PERM_EDIT_GROUP:
+			$author = $db->getCommentAuthor();
+			if ($author->group_id != $user->group_id)
+				throw new APIError(1306); 
+		}
+
+		//$comment_id = paramPut('comment_id');
+		$oldComment = $db->getObjectsFromTableByIds('comments',$comment_id);
+
+		if (empty($oldComment))
+			throw new APIError(1301);
+		$oldComment = $oldComment[0];
+
+		$comment = new Comment;
+		$comment->comment_id = $comment_id;
+		//checkOld($comment,$oldComment,'comment_id');
+		checkOld($comment,$oldComment,'post_id');
+		checkOld($comment,$oldComment,'user_id');
+		checkOld($comment,$oldComment,'parent_comment_id');
+		checkOld($comment,$oldComment,'ip');
+		checkOld($comment,$oldComment,'visible');
+		checkOld($comment,$oldComment,'content');
+		checkOld($comment,$oldComment,'name');
+		
+		$db->insertObjectIntoTable($comment,false);
+		$result = new APIResult(APICommentsFactory::getCommentsByIds(
+			$comment_id)); 
+		setUp($result,'/posts/id/'.$comment->post_id.'/comments');
+	}
+	catch (APIError $e) {
+		$result = new APIResult(null,$e);
+	}
+	output($result);
+});
+
+$app->put('/users/id/:user_id', function($user_id) {
+	try {
+		global $db;
+		$user = APIOAuth::validate();
+
+		if (!$user->admin || $user->user_id != $user_id)
+			throw new APIError(1015);
+
+		// login cannot be changed
+		$group_id = paramPut('group_id');
+		$name = paramPut('name');
+
+		$password = paramPut('password');
+		$confirmpassword = paramPut('confirmpassword');
+		$previouspassword = paramPut('previouspassword');
+
+		if ($password != '');
+	}
+	catch (APIError $e) {
+		$result = new APIResult(null,$e);
+	}
+	output($result);
 });
 
 $app->get('/', function() {
@@ -607,8 +765,15 @@ function getUserId() {
 	catch (APIError $e) { return 0; }
 }
 
-function param_post($key) {
+function paramPost($key) {
 	// Get POST parameter if exists
 	global $app;
 	return $app->request()->post($key);
 }
+
+function paramPut($key) {
+	// Get PUT parameter if exists
+	global $app;
+	return $app->request()->put($key);
+}
+

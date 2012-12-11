@@ -71,6 +71,8 @@ class APIError extends Exception {
 			User::$limits['login_min'].' characters long'; break;
 		case 1013: $msg = 'Password must be at least '.
 			User::$limits['password_min'].' characters long'; break;
+		case 1014: $msg = 'New users must be in default group'; break;
+		case 1015: $msg = 'Invalid permissions to edit user info'; break;
 
 		// Group errors
 		case 1101: $msg = 'Invalid group ID'; break;
@@ -83,6 +85,7 @@ class APIError extends Exception {
 		case 1108: $msg = 'A group with this name already exists'; break;
 		case 1109: $msg = 'Group does not exist'; break;
 		case 1110: $msg = 'Invalid group color'; break;
+		case 1111: $msg = 'Must be an admin to add or change a group'; break;
 
 		// Post errors
 		case 1201: $msg = 'Invalid post ID'; break;
@@ -100,6 +103,7 @@ class APIError extends Exception {
 							break;
 		case 1211: $msg = 'Missing POST data'; break;
 		case 1212: $msg = 'Title cannot be null'; break;
+		case 1213: $msg = 'Missing PUT data'; break;
 
 		// Comment errors
 		case 1301: $msg = 'Invalid comment ID'; break;

@@ -3,14 +3,14 @@ defined('API_PATH') or die('No direct script access.');
 
 class APICommentsFactory {
 	public static function getCommentsByIds($ids,$reverse=false,
-				$perPage=POSTS_DEFAULT_NUM,$page=1) {
+				$perPage=COMMENTS_DEFAULT_NUM,$page=1) {
 		$perPage = (int)$perPage;
 		$page = (int)$page;
 
 		if ($perPage <= 0)
-			$perPage = POSTS_DEFAULT_NUM;
-		else if ($perPage > POSTS_MAX_NUM) 
-			$perPage = POSTS_MAX_NUM;
+			$perPage = COMMENTS_DEFAULT_NUM;
+		else if ($perPage > COMMENTS_MAX_NUM) 
+			$perPage = COMMENTS_MAX_NUM;
 		if ($page < 1)
 			$page = 1;
 
@@ -73,7 +73,7 @@ class APICommentsFactory {
 	}
 
 	public static function getCommentsBetweenIds($from=null,$to=null,
-				$reverse=true,$perPage=POSTS_DEFAULT_NUM,$page=1)
+				$reverse=true,$perPage=COMMENTS_DEFAULT_NUM,$page=1)
 	{
 		global $db, $config;
 
@@ -85,9 +85,9 @@ class APICommentsFactory {
 			$to = PHP_INT_MAX;
 
 		if ($perPage <= 0)
-			$perPage = POSTS_DEFAULT_NUM;
-		else if ($perPage > POSTS_MAX_NUM) 
-			$perPage = POSTS_MAX_NUM;
+			$perPage = COMMENTS_DEFAULT_NUM;
+		else if ($perPage > COMMENTS_MAX_NUM) 
+			$perPage = COMMENTS_MAX_NUM;
 		if ($page < 1)
 			$page = 1;
 		$lower = ($page-1) * $perPage;
@@ -119,7 +119,7 @@ class APICommentsFactory {
 	}
 
 	public static function getCommentsByAuthorId($id,$reverse=true,
-			$perPage=POSTS_DEFAULT_NUM,$page=1)
+			$perPage=COMMENTS_DEFAULT_NUM,$page=1)
 	{
 		global $config, $db;
 		$id = (int)$id;
@@ -145,7 +145,7 @@ class APICommentsFactory {
 	}
 
 	public static function getCommentsByAuthorLogin($login,$reverse=true,
-			$perPage=POSTS_DEFAULT_NUM,$page=1)
+			$perPage=COMMENTS_DEFAULT_NUM,$page=1)
 	{
 		global $config, $db;
 		$query = "

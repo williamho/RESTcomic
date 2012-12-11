@@ -33,11 +33,11 @@ class Comment {
 		$errors = new APIError();
 
 		// Check comment ID
-		if (!is_int($this->comment_id))
+		if (!is_int($this->comment_id) && !ctype_digit($this->comment_id))
 			$errors->addError(1301); // invalid comment id
 
 		// Check user ID
-		if (!is_int($this->user_id))
+		if (!is_int($this->user_id) && !ctype_digit($this->user_id))
 			$errors->addError(1001); // invalid user id
 
 		// Check post ID
@@ -56,6 +56,7 @@ class Comment {
 
 		// Check parent comment ID
 		if (!is_int($this->parent_comment_id) && 
+			!ctype_digit($this->parent_comment_id) && 
 		    !is_null($this->parent_comment_id))
 			$errors->addError(1303); // invalid parent id
 

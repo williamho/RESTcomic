@@ -34,7 +34,7 @@ class DatabaseWrapper {
 	 * @param mixed $obj The object to add. 
 	 *                   Valid classes: Group, User, Post, Tag, or Comment
 	 */
-	public function insertObjectIntoTable($obj) {
+	public function insertObjectIntoTable($obj, $new=true) {
 		// Check for errors
 		if ($e = $obj->getErrors()) 
 			throw $e;
@@ -47,16 +47,17 @@ class DatabaseWrapper {
 		case 'Group': 
 			$primary = 'group_id';
 			$table = 'groups';
+			$this->validateGroup($obj,$new);
 			break;
 		case 'User': 
 			$primary = 'user_id';
 			$table = 'users';
-			$this->validateUser($obj);
+			$this->validateUser($obj,$new);
 			break; 
 		case 'Post': 
 			$primary = 'post_id';
 			$table = 'posts';
-			$this->validatePost($obj);
+			$this->validatePost($obj,$new);
 			break; 
 		case 'Tag': 
 			$primary = 'tag_id';
@@ -66,7 +67,7 @@ class DatabaseWrapper {
 		case 'Comment': 
 			$primary = 'comment_id';
 			$table = 'comments';
-			$this->validateComment($obj);
+			$this->validateComment($obj,$new);
 			break; 
 		default:
 			throw new Exception('Invalid object');
@@ -74,7 +75,7 @@ class DatabaseWrapper {
 		}
 		$table = $config->tables[$table];
 
-		if ($obj->$primary) {
+		if ($new && $obj->$primary) {
 			throw new Exception('To insert a new object into the 
 						table, the primary key must be null');
 		}
@@ -92,16 +93,24 @@ class DatabaseWrapper {
 		$queryColumns = implode(',',$columns);
 		$queryBinds = implode(',',$binds);
 
-		$query = "INSERT INTO $table ($queryColumns)
-			VALUES ($queryBinds)";
-
+		if ($new) {
+			$query = "INSERT INTO $table ($queryColumns)
+				VALUES ($queryBinds)";
+		}
+		else { // Replacing current row
+			$query = "REPLACE INTO $table ($queryColumns)
+				VALUES ($queryBinds)";
+		}
 		$stmt = $this->db->prepare($query);
 		foreach($fields as $column=>$value) 
 			$stmt->bindValue(":$column",$value);
 
 		$stmt->execute();
 
-		if ($table == 'comments') {
+		if (!$new && $table == 'posts')
+			$this->deleteTagsFromPost($obj->post_id);
+
+		if ($new && $table == 'comments') {
 			$query = "
 				UPDATE {$config->tables['posts']} p
 				SET p.comment_count = p.comment_count + 1
@@ -167,14 +176,16 @@ class DatabaseWrapper {
 
 	private function rowExists($table,$column,$value) {
 		global $config;
+		$primary = $this->getPrimary($table);
 
-		$query = "SELECT 1 FROM {$config->tables[$table]}
+		$query = "SELECT $primary FROM {$config->tables[$table]}
 		          WHERE $column = :val";
 		$stmt = $this->db->prepare($query);
 		$stmt->bindParam(':val',$value);
 		$stmt->execute();
 
-		return (bool)$stmt->rowCount();
+		$index = $stmt->fetchColumn();
+		return $index;
 	}
 
 	private function validateTag(Tag $tag) {
@@ -184,12 +195,25 @@ class DatabaseWrapper {
 		return null;
 	}
 
-	private function validateUser(User $user) {
+	private function validateGroup(Group $group, $new=true) {
+		// Check if group name already exists
+		if ($index = $this->rowExists('groups','name',$group->name)) {
+			if ($index != $group->group_id)
+				throw new APIError(1108); // group name already exists
+		}
+		return null;
+	}
+
+	private function validateUser(User $user, $new=true) {
 		$errors = new APIError();
 
 		// Check if user is valid
-		if ($this->rowExists('users','login',$user->login))
-			$errors->addError(1008); // User already exists
+		if ($index = $this->rowExists('users','login',$user->login))
+			if ($index != $user->user_id)
+				$errors->addError(1008); // User already exists
+
+		if ($new && $user->group_id != 2) 
+			$errors->addError(1014); // New users must be in default group
 
 		// Check if group is valid
 		if (!$this->rowExists('groups','group_id',$user->group_id))
@@ -208,15 +232,22 @@ class DatabaseWrapper {
 		if (!$this->rowExists('users','user_id',$post->user_id))
 			$errors->addError(1009); // User doesn't exist
 		
-		// Check if post with slug already exists
-		$originalSlug = $post->title_slug;
-		for ($i=1; 
-			$this->rowExists('posts','title_slug',$post->title_slug); 
-			$i++) 
-		{
-			$post->title_slug = $originalSlug.'-'.$i;
+		if (!$new) { 
+			$index = $this->rowExists('posts','title_slug',$post->title_slug);
+			if ($index != null && $index != $post->post_id)
+				throw new APIError(1209);
 		}
-		//$errors->addError(1209); 
+
+		else {
+			// Check if post with slug already exists
+			$originalSlug = $post->title_slug;
+			for ($i=1; 
+				$this->rowExists('posts','title_slug',$post->title_slug); 
+				$i++) 
+			{
+				$post->title_slug = $originalSlug.'-'.$i;
+			}
+		}
 
 		if (!$new) {
 			$query = "
@@ -242,11 +273,11 @@ class DatabaseWrapper {
 		global $config;
 
 		// Check if user is valid
-		if (!$this->rowExists('users','user_id',$comment->user_id))
+		if (is_null($this->rowExists('users','user_id',$comment->user_id)))
 			$errors->addError(1009); // User doesn't exist
 
 		// Check if post is valid
-		if (!$this->rowExists('posts','post_id',$comment->post_id))
+		if (!$this->rowExists('posts','post_id',(int)$comment->post_id))
 			$errors->addError(1205); // Post doesn't exist
 
 		// Check if parent comment is valid
@@ -315,12 +346,37 @@ class DatabaseWrapper {
 		$stmt->closeCursor();
 	}
 
+	function deleteTagsFromPost($post_id) {
+		global $config;
+		// Delete posttags rows
+		$query = "
+			DELETE FROM {$config->tables['post_tags']} 
+			WHERE post_id = :post_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':post_id',$post_id);
+		if (!$stmt->execute())
+			throw new APIError(2007);
+
+		// Delete orphan tags
+		$query = "
+			DELETE FROM {$config->tables['tags']}
+			WHERE tag_id NOT IN (
+				SELECT tag_id
+				FROM {$config->tables['post_tags']}
+			)
+		";
+		if (!$this->db->query($query))
+			throw new APIError(2007);
+	}
+
 	/**
 	 * Add array of tags to a post with the given ID
 	 * @param array $tags Array of tag names
 	 * @param int $post_id The ID of the post to add the tags to
 	 */
 	public function addTagsToPost($tags, $post_id) {
+		$tags = (array)$tags;
 		foreach ($tags as $tag) 
 			$this->addTagToPost($tag,$post_id);
 	}
@@ -395,26 +451,7 @@ class DatabaseWrapper {
 		if (!$stmt->execute())
 			throw new APIError(2007); 
 
-		// Delete posttags rows
-		$query = "
-			DELETE FROM {$config->tables['post_tags']} 
-			WHERE post_id = :post_id
-		";
-		$stmt = $this->db->prepare($query);
-		$stmt->bindParam(':post_id',$post_id);
-		if (!$stmt->execute())
-			throw new APIError(2007);
-
-		// Delete orphan tags
-		$query = "
-			DELETE FROM {$config->tables['tags']}
-			WHERE tag_id NOT IN (
-				SELECT tag_id
-				FROM {$config->tables['post_tags']}
-			)
-		";
-		if (!$this->db->query($query))
-			throw new APIError(2007);
+		$this->deleteTagsFromPost($post_id);
 	}
 
 	public function deleteComment($comment_id) {
@@ -445,6 +482,18 @@ class DatabaseWrapper {
 			return;
 		}
 
+		// Decrement the comment count
+		$query = "
+			UPDATE {$config->tables['posts']} p,
+				{$config->tables['comments']} c
+			SET p.comment_count = p.comment_count - 1
+			WHERE p.post_id = c.post_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->execute();
+		$stmt->closeCursor();
+
+		// Then delete the comment
 		$query = "
 			DELETE FROM {$config->tables['comments']} 
 			WHERE comment_id = :comment_id
@@ -453,6 +502,7 @@ class DatabaseWrapper {
 		$stmt->bindParam(':comment_id',$comment_id);
 		$stmt->execute();
 		$stmt->closeCursor();
+
 	}
 
 	public function getPostIdFromCommentId($comment_id) {

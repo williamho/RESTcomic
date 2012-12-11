@@ -35,11 +35,11 @@ class Post {
 		$errors = new APIError();
 
 		// Check post ID
-		if (!is_int($this->post_id))
+		if (!is_int($this->post_id) && !ctype_digit($this->post_id))
 			$errors->addError(1201); // invalid post id
 
 		// Check user ID
-		if (!is_int($this->user_id))
+		if (!is_int($this->user_id) && !ctype_digit($this->user_id))
 			$errors->addError(1001); // invalid user id
 	
 		// Check title
@@ -48,7 +48,7 @@ class Post {
 		if ($this->title === '')
 			$errors->addError(1212); // title cannot be null
 
-		if ($this->title_slug) 
+		if (!is_null($this->title_slug) && $this->title_slug !== '') 
 			$this->title_slug = makeSlug($this->title_slug);
 		else
 			$this->title_slug = makeSlug($this->title);
@@ -56,7 +56,7 @@ class Post {
 			$errors->addError(1208); // Title slug too long
 
 		// Check status
-		if (!is_int($this->status) || 
+		if ((!is_int($this->status) && !ctype_digit($this->status)) || 
 			$this->status<0 || $this->status>self::STATUS_HIDDEN)
 			$errors->addError(1203); // Invalid status
 
