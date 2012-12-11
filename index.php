@@ -477,11 +477,11 @@ $app->post('/groups', function() {
 
 		$name = paramPost('name');
 		$color = paramPost('color');
-		$admin = (bool)paramPost('admin');
-		$mp = (int)paramPost('make_post');
-		$ep = (int)paramPost('edit_post');
-		$mc = (int)paramPost('make_comment');
-		$ec = (int)paramPost('edit_comment');
+		$admin = (bool)paramPost('admin_perm');
+		$mp = (int)paramPost('make_post_perm');
+		$ep = (int)paramPost('edit_post_perm');
+		$mc = (int)paramPost('make_comment_perm');
+		$ec = (int)paramPost('edit_comment_perm');
 
 		$group = new Group;
 		$group->setValues(0,$name,$color,$admin,$mp,$ep,$mc,$ec);
@@ -617,13 +617,13 @@ $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 	output($result);
 });
 
-//$app->put('/users/id/:user_id', function($user_id) {
-$app->put('/users', function() {
+//$app->put('/users', function() {
+$app->put('/users/id/:user_id', function($user_id) {
 	try {
 		global $db;
 		$apiuser = APIOAuth::validate();
 
-		$user_id = paramPut('user_id');//comment out
+		//$user_id = paramPut('user_id');//comment out
 
 		if (!$apiuser->admin && $apiuser->user_id != $user_id)
 			throw new APIError(1015);
@@ -657,6 +657,34 @@ $app->put('/users', function() {
 		$db->insertObjectIntoTable($user,false);
 		$result = new APIResult(APIUsersFactory::getUsersByIds($user_id)); 
 		setUp($result,'/users');
+	}
+	catch (APIError $e) {
+		$result = new APIResult(null,$e);
+	}
+	output($result);
+});
+
+//$app->put('/groups', function() {
+$app->put('/groups/id/:group_id', function($group_id) {
+	try {
+		global $db;
+		$user = APIOAuth::validate();
+		if (!$user->admin)
+			throw new APIError(1111);
+
+		//$group_id = paramPut('group_id');//comment out
+
+		$oldGroup = $db->getObjectsFromTableByIds('groups',$group_id);
+		if (empty($oldGroup))
+			throw new APIError(1101);
+		$oldGroup = $oldGroup[0];
+
+		$group = new Group;
+		checkOld($group,$oldGroup);
+
+		$group_id = $db->insertObjectIntoTable($group,false);
+		$result = new APIResult(APIGroupsFactory::getGroupsByIds($group_id));
+		setUp($result,'/groups');
 	}
 	catch (APIError $e) {
 		$result = new APIResult(null,$e);

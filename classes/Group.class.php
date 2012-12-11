@@ -41,7 +41,7 @@ class Group {
 	public function getErrors() {
 		$errors = new APIError();
 		
-		if (!is_int($this->group_id))
+		if (!is_int($this->group_id) && !ctype_digit($this->group_id))
 			$errors->addError(1101); // Invalid id
 
 		// Check group name
@@ -62,13 +62,17 @@ class Group {
 		$mc = $this->make_comment_perm;
 		$ec = $this->edit_comment_perm;
 
-		if (!is_int($mp) || $mp < 0 || $mp > self::PERM_MAKE_OK)
+		if ((!is_int($mp) && !ctype_digit($mp)) || 
+				$mp < 0 || $mp > self::PERM_MAKE_OK)
 			$errors->addError(1104); // Invalid mp value 
-		if (!is_int($ep) || $ep < 0 || $ep > self::PERM_EDIT_ALL)
+		if ((!is_int($ep) && !ctype_digit($ep)) || 
+				$ep < 0 || $ep > self::PERM_EDIT_ALL)
 			$errors->addError(1105); // Invalid ep value
-		if (!is_int($mc) || $mc < 0 || $mc > self::PERM_MAKE_OK)
+		if ((!is_int($mc) && !ctype_digit($mc)) || 
+				$mc < 0 || $mc > self::PERM_MAKE_OK)
 			$errors->addError(1106); // Invalid mc value
-		if (!is_int($ec) || $ec < 0 || $ec > self::PERM_EDIT_ALL)
+		if ((!is_int($ec) && !ctype_digit($ec)) || 
+				$ec < 0 || $ec > self::PERM_EDIT_ALL)
 			$errors->addError(1107); // Invalid ec value
 		$this->admin_perm = (bool)$this->admin_perm;
 
