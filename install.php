@@ -177,12 +177,6 @@ $sampleTag = new Tag;
 $sampleTag->setValues(0,'tag name',null);
 $db->insertObjectIntoTable($sampleTag);
 
-// new user
-$unregUser = new User;
-$unregUser->setValues(0,1,'name','Unregistered',null);
-$unregUser->hashPassword();
-$db->insertObjectIntoTable($unregUser);
-
 $db->addTagsToPost(array('test','test2','test3'),1);
 
 } catch(APIError $e) {

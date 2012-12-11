@@ -422,6 +422,7 @@ $app->get('/comments/by_author/:login', function($login) use($app) {
 	}
 	output($result);
 });
+
 $app->get('/users/id/:idList', function($idList) {
 	try {
 		$ids = explode(',',$idList);
@@ -433,6 +434,38 @@ $app->get('/users/id/:idList', function($idList) {
 		$result = new APIResult(null,$e); 
 	}
 
+	output($result);
+});
+
+$app->post('/users', function() {
+	// Add a new user
+	try {
+		global $db;
+		$errors = new APIError();
+
+		$login = param_post('username');
+		$pass = param_post('password');
+		$confirmpass = param_post('confirmpassword');
+
+		if ($pass !== $confirmpass)
+			throw new APIError(1010);
+
+		$name = param_post('name');
+		$email = param_post('email');
+		$website = param_post('website');
+		$timestamp = null;
+
+		$user = new User;
+		$user->setValues(0,2,$login,$name,$pass,'now',$email,$website);
+		$user->hashPassword();
+		$user_id = $db->insertObjectIntoTable($user);
+
+		$result = new APIResult(APIUsersFactory::getUsersByIds($user_id));
+		setUp($result,'');
+	}
+	catch (APIError $e) {
+		$result = new APIResult(null,$e);
+	}
 	output($result);
 });
 

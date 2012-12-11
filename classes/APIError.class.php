@@ -65,6 +65,12 @@ class APIError extends Exception {
 		case 1007: $msg = 'Email exceeds max length'; break;
 		case 1008: $msg = 'A user with this login already exists'; break;
 		case 1009: $msg = 'User does not exist'; break;
+		case 1010: $msg = "Passwords don't match"; break;
+		case 1011: $msg = 'Password cannot be null'; break;
+		case 1012: $msg = 'Username must be at least '.
+			User::$limits['login_min'].' characters long'; break;
+		case 1013: $msg = 'Password must be at least '.
+			User::$limits['password_min'].' characters long'; break;
 
 		// Group errors
 		case 1101: $msg = 'Invalid group ID'; break;

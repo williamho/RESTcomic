@@ -185,9 +185,18 @@ class DatabaseWrapper {
 	}
 
 	private function validateUser(User $user) {
+		$errors = new APIError();
+
+		// Check if user is valid
+		if ($this->rowExists('users','login',$user->login))
+			$errors->addError(1008); // User already exists
+
 		// Check if group is valid
 		if (!$this->rowExists('groups','group_id',$user->group_id))
-			throw new APIError(1109); // Group doesn't exist
+			$errors->addError(1109); // Group doesn't exist
+
+		if (!$errors->isEmpty())
+			throw $errors;
 		return null;
 	}
 	
