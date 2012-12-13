@@ -196,6 +196,22 @@ $app->delete('/posts/id/:id', function($id) use($app) {
 	output($result);
 });
 
+$app->delete('/groups/id/:id', function($id) use($app) {
+	try {
+		global $db;
+		$user = APIOauth::validate();
+
+		if (!$user->admin)
+			throw new APIError(1111);
+		$db->deleteGroup($id);
+		$result = new APIResult();
+	}
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+	output($result);
+});
+
 $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
 	$user_id = getUserId();
 	try { 
@@ -295,7 +311,7 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 		}
 		// Check if params are set
 		$user_id = (int)$user->user_id;
-		if (($parent = paramPost('parent_comment_id'))!=='') {
+		if (!is_null($parent = paramPost('parent_comment_id'))) {
 			// Check if parent comment even exists
 			$parent = (int)$parent;
 			$post_id = $db->getPostIdFromCommentId($parent);
@@ -310,6 +326,13 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 		$visible = true;
 		$content = paramPost('content');
 		$name = paramPost('name');
+		if ($user->user_id == 0 && $name == '')
+			$name = 'Anonymous';
+
+		if ($content === '')
+			throw new APIError(1308); // comment empty
+
+		$content = htmlspecialchars($content);
 
 		// Check if post is commentable if user is not admin
 		$posts = $db->getObjectsFromTableByIds('posts',$post_id);

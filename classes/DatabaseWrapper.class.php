@@ -137,7 +137,7 @@ class DatabaseWrapper {
 
 	public function getObjectsFromTableByIds($table,$ids) {
 		$ids = (array)$ids;
-
+		
 		$primary = $this->getPrimary($table);
 		foreach($ids as $index=>$id)
 			$ids[$index] = (int)$id;
@@ -452,6 +452,31 @@ class DatabaseWrapper {
 			throw new APIError(2007); 
 
 		$this->deleteTagsFromPost($post_id);
+	}
+
+	public function deleteGroup($group_id) {
+		global $config;
+
+		// Assign all users currently in the group to default group
+		$query = "
+			UPDATE {$config->tables['users']} u
+			SET u.group_id = 2
+			WHERE u.group_id = :group_id
+		";
+
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':group_id',$group_id);
+		$stmt->execute();
+		$stmt->closeCursor();
+
+		$query = "
+			DELETE FROM {$config->tables['groups']} 
+			WHERE group_id = :group_id
+		";
+		$stmt = $this->db->prepare($query);
+		$stmt->bindParam(':group_id',$group_id);
+		if (!$stmt->execute())
+			throw new APIError(2007); 
 	}
 
 	public function deleteComment($comment_id) {

@@ -117,6 +117,7 @@ class APIError extends Exception {
 							comment'; break;
 		case 1307: $msg = 'User does not have permission to comment on this
 							post'; break;
+		case 1308: $msg = 'Comment cannot be empty'; break;
 
 		// Tag errors
 		case 1401: $msg = 'Invalid post ID'; break;

@@ -244,7 +244,7 @@ class APICommentsFactory {
 				$apiUser,
 				$comment->parent_comment_id
 			);
-			unset($apiComment->post_id);
+			//unset($apiComment->post_id);
 
 			if ($nested) {
 				if ($apiComment->parent === 0) {

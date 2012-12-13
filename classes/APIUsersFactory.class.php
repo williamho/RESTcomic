@@ -11,7 +11,7 @@ class APIUsersFactory {
 
 		if ($getGroup) {
 			$query = "
-				SELECT *, g.name as group_name 
+				SELECT *, u.name as user_name, g.name as group_name 
 				FROM {$config->tables['users']} u, 
 					{$config->tables['groups']} g
 				WHERE u.user_id IN ($idString)
@@ -53,7 +53,7 @@ class APIUsersFactory {
 				$user->user_id,
 				$apiGroup,
 				$user->login,
-				$user->name,
+				$user->user_name,
 				$user->website,
 				$user->email
 			);

@@ -9,7 +9,7 @@ define('SQL_TABLE_PREFIX','');
  * 404, mm, identicon, monsterid, wavatar, retro, blank
  * See: https://en.gravatar.com/site/implement/images/ 
  */
-define('USER_ICON_DEFAULT','blank'); 
+define('USER_ICON_DEFAULT','mm'); 
 
 // Gravatar icon size
 define('USER_ICON_SIZE','32');
