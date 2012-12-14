@@ -280,12 +280,26 @@ class APIPostsFactory {
 	{
 		global $config, $db;
 		$id = (int)$id;
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+
+		if ($perPage <= 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		else if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 1)
+			$page = 1;
+
+		$lower = ($page-1) * $perPage;
+		$desc = $reverse ? 'DESC' : '';
 		$query = "
 			SELECT p.post_id
 			FROM {$config->tables['users']} u, 
 				{$config->tables['posts']} p 
 			WHERE u.user_id = :id
 				AND u.user_id = p.user_id
+			ORDER BY p.post_id $desc 
+			LIMIT $lower,$perPage
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':id',$id);
@@ -307,12 +321,26 @@ class APIPostsFactory {
 				$getTags=true,$getGroup=false)
 	{
 		global $config, $db;
+		$perPage = (int)$perPage;
+		$page = (int)$page;
+
+		if ($perPage <= 0)
+			$perPage = POSTS_DEFAULT_NUM;
+		else if ($perPage > POSTS_MAX_NUM) 
+			$perPage = POSTS_MAX_NUM;
+		if ($page < 1)
+			$page = 1;
+		$desc = $reverse ? 'DESC' : '';
+
+		$lower = ($page-1) * $perPage;
 		$query = "
 			SELECT p.post_id
 			FROM {$config->tables['users']} u, 
 				{$config->tables['posts']} p 
 			WHERE u.login = :login
 				AND u.user_id = p.user_id
+			ORDER BY p.post_id $desc 
+			LIMIT $lower,$perPage
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':login',$login);

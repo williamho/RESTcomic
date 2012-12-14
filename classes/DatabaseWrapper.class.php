@@ -106,6 +106,7 @@ class DatabaseWrapper {
 			$stmt->bindValue(":$column",$value);
 
 		$stmt->execute();
+		$inserted = $this->db->lastInsertId();
 
 		if (!$new && $table == 'posts')
 			$this->deleteTagsFromPost($obj->post_id);
@@ -119,6 +120,7 @@ class DatabaseWrapper {
 			$stmt = $this->db->prepare($query);
 			$stmt->bindValue(':id',$obj->post_id);
 			$stmt->execute();
+			return $inserted;
 		}
 
 		return $this->db->lastInsertId($primary);

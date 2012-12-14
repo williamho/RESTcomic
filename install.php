@@ -145,7 +145,7 @@ $db->insertObjectIntoTable($adminUser);
 
 // Create regular group
 $regGroup = new Group();
-$regGroup->setValues(0,'Users',REG_COLOR,true,
+$regGroup->setValues(0,'Users',REG_COLOR,false,
 	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
 	Group::PERM_MAKE_OK, Group::PERM_EDIT_OWN);
 $db->insertObjectIntoTable($regGroup);
@@ -154,30 +154,6 @@ $db->insertObjectIntoTable($regGroup);
 $samplePost = new Post;
 $samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img',"Header\n-------\n\n>Block\n>\n>Quote\n");
 $db->insertObjectIntoTable($samplePost);
-
-$samplePost = new Post;
-$samplePost->setValues(0,1,"POST NUMBER TWO!",null,0,true,'now','img',"yeah");
-$db->insertObjectIntoTable($samplePost);
-
-// Add sample comment
-$sampleComment = new Comment;
-$sampleComment->setValues(0,1,1,null,'now',null,true,'hi','a name');
-$db->insertObjectIntoTable($sampleComment);
-
-$sampleComment = new Comment;
-$sampleComment->setValues(0,1,0,1,'now',null,true,'content','unreggedguy');
-$db->insertObjectIntoTable($sampleComment);
-
-$sampleComment = new Comment;
-$sampleComment->setValues(0,2,1,null,'now',null,true,'hi','a name');
-$db->insertObjectIntoTable($sampleComment);
-
-// Add sample tag
-$sampleTag = new Tag;
-$sampleTag->setValues(0,'tag name',null);
-$db->insertObjectIntoTable($sampleTag);
-
-$db->addTagsToPost(array('test','test2','test3'),1);
 
 } catch(APIError $e) {
 	echo json_encode($e->getErrors());

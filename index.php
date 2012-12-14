@@ -20,6 +20,7 @@ $app->error(function(\Exception $e) {
 
 $app->get('/posts', function() use ($app) {
 	// Get most recent posts
+	$user_id = getUserId();
 	try {
 		$perPage = $app->request()->get('perpage');
 		$page = $app->request()->get('page');
@@ -29,7 +30,7 @@ $app->get('/posts', function() use ($app) {
 		$to = $app->request()->get('to');
 
 		$posts = APIPostsFactory::getPostsBetweenIds(
-			$from,$to,$desc,$perPage,$page);
+			$from,$to,$desc,$perPage,$page,$user_id);
 		$result = new APIResult($posts);
 		paginate($result);
 		setUp($result,'');
@@ -106,7 +107,7 @@ $app->get('/posts/:slug', function($slug) use($app) {
 
 $app->get('/posts/id/:idList', function($idList) use($app) {
 	// Get posts by comma-separated IDs
-	$user_id = getUserId();
+	$user_id = GetUserId();
 	try { 
 		$ids = explode(',',$idList);
 		$perPage = $app->request()->get('perpage');
@@ -314,7 +315,7 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 		if (!is_null($parent = paramPost('parent_comment_id'))) {
 			// Check if parent comment even exists
 			$parent = (int)$parent;
-			$post_id = $db->getPostIdFromCommentId($parent);
+			$post_id = (int)$db->getPostIdFromCommentId($parent);
 		}
 		else {
 			$post_id = (int)$post_id;
@@ -350,8 +351,8 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 			$ip,$visible,$content,$name);
 		$comment_id = $db->insertObjectIntoTable($comment);
 
-		$result = new APIResult(APICommentsFactory::getCommentsByIds(
-			$comment_id)); 
+		$apiComment = APICommentsFactory::getCommentsByIds($comment_id);
+		$result = new APIResult($apiComment); 
 		setUp($result,'/posts/id/'.$post_id.'/comments');
 	}
 	catch(APIError $e) { 
@@ -450,6 +451,19 @@ $app->get('/users/id/:idList', function($idList) {
 	try {
 		$ids = explode(',',$idList);
 		$users = APIUsersFactory::getUsersByIds($ids);
+		$result = new APIResult($users);
+		setUp($result,'/users');
+	}	
+	catch(APIError $e) { 
+		$result = new APIResult(null,$e); 
+	}
+
+	output($result);
+});
+
+$app->get('/users/:login', function($login) {
+	try {
+		$users = APIUsersFactory::getUserByLogin($login);
 		$result = new APIResult($users);
 		setUp($result,'/users');
 	}	

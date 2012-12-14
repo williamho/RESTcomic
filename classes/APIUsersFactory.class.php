@@ -2,6 +2,22 @@
 defined('API_PATH') or die('No direct script access.');
 
 class APIUsersFactory {
+	public static function getUserByLogin($login, $getGroup=true) {
+		global $config, $db;
+		$query = "
+			SELECT u.user_id
+			FROM {$config->tables['users']} u 
+			WHERE u.login = :login
+		";
+		$stmt = $db->prepare($query);
+		$stmt->bindParam(':login',$login);
+		$stmt->execute();
+
+		if(is_null($userId = $stmt->fetchColumn()))
+			return array();
+		return self::getUsersByIds($userId,$getGroup);
+	}
+
 	public static function getUsersByIds($ids, $getGroup=true) {
 		global $db, $config;
 		$ids = (array)$ids;
@@ -48,7 +64,6 @@ class APIUsersFactory {
 			else
 				$group = null;
 				
-
 			$apiUser = new APIUser(
 				$user->user_id,
 				$apiGroup,
