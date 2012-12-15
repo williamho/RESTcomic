@@ -70,6 +70,7 @@ class APIPostsFactory {
 				WHERE p.post_id IN ($idString)
 					AND pt.post_id = p.post_id
 					AND pt.tag_id = t.tag_id
+				ORDER BY tag_name
 			";
 			$stmt = $db->prepare($query);
 			$stmt->execute();

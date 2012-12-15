@@ -117,6 +117,9 @@ function paginate(APIResult &$content,$perPage=0,$page=1,$desc=true) {
 	if ($perPage <= 0)
 		$perPage = POSTS_DEFAULT_NUM;
 
+	if ($page < 1)
+		$page = 1;
+
 	$params = array('page'=>$page,'perpage'=>$perPage,'reverse'=>$desc);
 
 	if ($params['page'] <= 1)
