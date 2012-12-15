@@ -115,9 +115,23 @@ $db->executeQuery($query);
 $query = "ALTER TABLE {$config->tables['groups']} AUTO_INCREMENT=1";
 $db->executeQuery($query);
 
+// Create admin group
+$adminGroup = new Group();
+$adminGroup->setValues(0,'Administrators',ADMIN_COLOR,true,
+	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL, 
+	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL);
+$db->insertObjectIntoTable($adminGroup);
+
+// Create regular group
+$regGroup = new Group();
+$regGroup->setValues(0,'Users',REG_COLOR,false,
+	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
+	Group::PERM_MAKE_OK, Group::PERM_EDIT_OWN);
+$db->insertObjectIntoTable($regGroup);
+
 // Add unregistered user
 $unregUser = new User;
-$unregUser->setValues(0,0,'unregistered','Unregistered',null);
+$unregUser->setValues(0,2,'unregistered','Unregistered','unreguserpass');
 $unregUser->hashPassword();
 $db->insertObjectIntoTable($unregUser);
 
@@ -130,30 +144,23 @@ $db->executeQuery($query);
 $query = "UPDATE {$config->tables['users']} SET api_key='' 
 	WHERE user_id=0";
 $db->executeQuery($query);
-// Create admin group
-$adminGroup = new Group();
-$adminGroup->setValues(0,'Administrators',ADMIN_COLOR,true,
-	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL, 
-	Group::PERM_MAKE_OK, Group::PERM_EDIT_ALL);
-$db->insertObjectIntoTable($adminGroup);
+$query = "UPDATE {$config->tables['users']} SET group_id=0 
+	WHERE user_id=0";
+$db->executeQuery($query);
 
 // Add admin user
 $adminUser = new User;
-$adminUser->setValues(0,1,'admin','Administrator','password');
+$adminUser->setValues(0,2,'admin','Administrator','password');
 $adminUser->hashPassword();
 $db->insertObjectIntoTable($adminUser);
-
-// Create regular group
-$regGroup = new Group();
-$regGroup->setValues(0,'Users',REG_COLOR,false,
-	Group::PERM_MAKE_NONE, Group::PERM_EDIT_NONE, 
-	Group::PERM_MAKE_OK, Group::PERM_EDIT_OWN);
-$db->insertObjectIntoTable($regGroup);
+$query = "UPDATE {$config->tables['users']} SET group_id=1 
+	WHERE user_id=1";
+$db->executeQuery($query);
 
 // Add sample post
-$samplePost = new Post;
-$samplePost->setValues(0,1,"Here's a sample post!",null,0,true,'now','img',"Header\n-------\n\n>Block\n>\n>Quote\n");
-$db->insertObjectIntoTable($samplePost);
+$firstPost = new Post;
+$firstPost->setValues(0,1,"Welcome to restcomic!",null,0,true,'now','',"This is the first post! Log in to the admin user to edit this.");
+$db->insertObjectIntoTable($firstPost);
 
 } catch(APIError $e) {
 	echo json_encode($e->getErrors());

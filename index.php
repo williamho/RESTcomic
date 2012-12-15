@@ -20,25 +20,15 @@ $app->error(function(\Exception $e) {
 
 $app->get('/posts', function() use ($app) {
 	// Get most recent posts
-	$user_id = getUserId();
-	try {
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
+	//$user_id = getUserId();
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
 
-		$from = $app->request()->get('from');
-		$to = $app->request()->get('to');
+	$from = $app->request()->get('from');
+	$to = $app->request()->get('to');
 
-		$posts = APIPostsFactory::getPostsBetweenIds(
-			$from,$to,$desc,$perPage,$page,$user_id);
-		$result = new APIResult($posts);
-		paginate($result);
-		setUp($result,'');
-		convertMarkdown($result->response);
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getPostsBetweenIds($from,$to,$desc,$perPage,$page);
 	output($result);
 });
 
@@ -92,80 +82,40 @@ $app->post('/posts', function() use($app) {
 
 $app->get('/posts/:slug', function($slug) use($app) {
 	// Get post by title slug
-	$user_id = getUserId();
-	try { 
-		$posts = APIPostsFactory::getPostBySlug($slug,$user_id);
-		$result = new APIResult($posts);
-		setUp($result,'/posts');
-		convertMarkdown($result->response); 
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	//$user_id = getUserId();
+	$result = getPostBySlug($slug);
 	output($result);
 });
 
 $app->get('/posts/id/:idList', function($idList) use($app) {
 	// Get posts by comma-separated IDs
-	$user_id = GetUserId();
-	try { 
-		$ids = explode(',',$idList);
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
-
-		$posts = APIPostsFactory::getPostsByIds($ids,$desc,$perPage,$page,
-			$user_id);
-		$result = new APIResult($posts);
-		paginate($result);
-		setUp($result,'/posts');
-		convertMarkdown($result->response); 
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	//$user_id = GetUserId();
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
+	$result = getPostsByIds($idList,$desc,$perPage,$page);
 	output($result);
 });
 
 $app->get('/posts/by_author/id/:id', function($id) use($app) {
 	// Get posts by author ID
-	$user_id = getUserId();
-	try { 
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
+	//$user_id = getUserId();
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
 
-		$posts = APIPostsFactory::getPostsByAuthorId($id,$desc,$perPage,
-			$page,$user_id);
-		$result = new APIResult($posts);
-		paginate($result);
-		setUp($result,'/posts');
-		convertMarkdown($result->response); 
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getPostsByAuthorId($id,$desc,$perPage,$page);
 	output($result);
 });
 
 $app->get('/posts/by_author/:login', function($login) use($app) {
 	// Get posts by author login
-	$user_id = getUserId();
-	try { 
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
+	//$user_id = getUserId();
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
 
-		$posts = APIPostsFactory::getPostsByAuthorLogin($login,$desc,$perPage,
-			$page,$user_id);
-		$result = new APIResult($posts);
-		paginate($result);
-		setUp($result,'/posts');
-		convertMarkdown($result->response); 
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getPostsByAuthorLogin($login,$desc,$perPage,$page);
 	output($result);
 });
 
@@ -214,89 +164,38 @@ $app->delete('/groups/id/:id', function($id) use($app) {
 });
 
 $app->get('/posts/tagged/:tagList', function($tagList) use($app) {
-	$user_id = getUserId();
-	try { 
-		$and = !stringToBool($app->request()->get('any'));
-		$tags = explode(',',$tagList);
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
-		
-		$include = array();
-		$exclude = array();
-		foreach ($tags as $tag) {
-			if ($tag[0] === '-')
-				array_push($exclude, $tag);
-			else
-				array_push($include, $tag);
-		}
+	//$user_id = getUserId();
+	$and = !stringToBool($app->request()->get('any'));
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
 
-		if (empty($exclude))
-			$posts = APIPostsFactory::getPostsByTags($tags,$and,
-				$desc,$perPage,$page,$user_id);
-		else if (empty($include))
-			throw new APIError(1404); // No included tags
-		else
-			$posts = APIPostsFactory::getPostsByTagsExclude(
-				$include,$exclude,$and,$desc,$perPage,$page,$user_id);
-
-		$result = new APIResult($posts);
-		paginate($result);
-		setUp($result,'/posts');
-		convertMarkdown($result->response); 
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
-
+	$result = getPostsTagged($tagList,$perPage,$page,$desc,$and);
 	output($result);
 });
 
 $app->get('/posts/id/:id/comments', function($id) {
 	// Get comments by post ID
-	try { 
-		$comments = APICommentsFactory::getCommentsByPostId($id);
-		$result = new APIResult($comments);
-		setUp($result,'/posts/id/'.$id);
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getCommentsByPostId($id);
 	output($result);
 });
 
 $app->get('/posts/:slug/comments', function($slug) {
 	// Get comments by post slug
-	try { 
-		$comments = APICommentsFactory::getCommentsByPostSlug($slug);
-		$result = new APIResult($comments);
-		setUp($result,'/posts/'.$slug);
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getCommentsByPostSlug($slug);
 	output($result);
 });
 
 $app->get('/comments', function() use($app) {
 	// Get most recent comments
-	try {
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
 
-		$from = $app->request()->get('from');
-		$to = $app->request()->get('to');
+	$from = $app->request()->get('from');
+	$to = $app->request()->get('to');
 
-		$comments = APICommentsFactory::getCommentsBetweenIds(
-			$from,$to,$desc,$perPage,$page);
-		$result = new APIResult($comments);
-		paginate($result);
-		setUp($result,'');
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getComments($perPage,$page,$desc,$from,$to);
 	output($result);
 });
 
@@ -391,86 +290,43 @@ $app->delete('/comments/id/:id', function($id) use($app) {
 
 $app->get('/comments/id/:idList', function($idList) use($app) {
 	// Get comments by comma-separated list of IDs
-	try {
-		$ids = explode(',',$idList);
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
 
-		$comments = APICommentsFactory::getCommentsByIds($ids,$desc,
-				$perPage,$page);
-		$result = new APIResult($comments);
-		paginate($result);
-		setUp($result,'/comments/');
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getCommentsById($idList,$perPage,$page,$desc);
 	output($result);
 });
 
 $app->get('/comments/by_author/id/:id', function($id) use($app) {
 	// Get comments by author ID
-	try {
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
 
-		$comments = APICommentsFactory::getCommentsByAuthorId($id,$desc,
-			$perPage,$page);
-		$result = new APIResult($comments);
-		paginate($result);
-		setUp($result,'/comments');
-	}
-	catch (APIError $e) {
-		$result = new APIResult(null,$e); 
-	}
+	$result = getCommentsByAuthorId($id,$perPage,$page,$reverse);
 	output($result);
 });
 
 $app->get('/comments/by_author/:login', function($login) use($app) {
 	// Get comments by author login
-	try {
-		$perPage = $app->request()->get('perpage');
-		$page = $app->request()->get('page');
-		$desc = stringToBool($app->request()->get('reverse'));
-
-		$comments = APICommentsFactory::getCommentsByAuthorLogin($login,
-			$desc,$perPage,$page);
-		$result = new APIResult($comments);
-		paginate($result);
-		setUp($result,'/comments');
-	}
-	catch (APIError $e) {
-		$result = new APIResult(null,$e); 
-	}
+	$perPage = $app->request()->get('perpage');
+	$page = $app->request()->get('page');
+	$desc = stringToBool($app->request()->get('reverse'));
+	
+	$result = getCommentsByAuthorLogin($login,$perPage,$page,$desc);
 	output($result);
 });
 
-$app->get('/users/id/:idList', function($idList) {
-	try {
-		$ids = explode(',',$idList);
-		$users = APIUsersFactory::getUsersByIds($ids);
-		$result = new APIResult($users);
-		setUp($result,'/users');
-	}	
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+$app->get('/users/id/:idList', function($idList) use($app) {
+	$getemail = $app->request()->get('getemail');
 
+	$result = getUsersByIds($idList,$getemail);
 	output($result);
 });
 
 $app->get('/users/:login', function($login) {
-	try {
-		$users = APIUsersFactory::getUserByLogin($login);
-		$result = new APIResult($users);
-		setUp($result,'/users');
-	}	
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
-
+	$result = getUserByLogin($login);
 	output($result);
 });
 
@@ -545,12 +401,6 @@ $app->get('/groups/id/:idList', function($idList) {
 	}
 	output($result);
 });
-
-//function checkOld(&$new, &$old, $key) {
-	//$new->$key = paramPut($key);
-	//if ($new->$key == '' || is_null($new->$key))
-		//$new->$key = $old->$key;
-//}
 
 function checkOld(&$new, &$old) {
 	foreach ($old as $var=>$val) {
@@ -731,7 +581,7 @@ $app->put('/groups/id/:group_id', function($group_id) {
 
 $app->get('/', function() {
 	$response = array(
-		makeRouteDecription('/posts',
+		makeRouteDecription('/posts?reverse=true',
 			'Most recent posts'),
 		makeRouteDecription('/posts/id/1,2,3',
 			'Posts with comma-separated IDs'),
@@ -743,12 +593,12 @@ $app->get('/', function() {
 			'Posts by author with ID'),
 		makeRouteDecription('/posts/tagged/tag1,tag2',
 			'Posts with comma-separated tags'),
-		makeRouteDecription('/comments',
+		makeRouteDecription('/comments?reverse=true',
 			'Most recent comments'),
 		makeRouteDecription('/comments/id/1,2,3',
 			'Comments with comma-separated IDs'),
 		makeRouteDecription('/comments/by_author/admin',
-			'Comments by author with name'),
+			'Comments by author with login'),
 		makeRouteDecription('/comments/by_author/id/1',
 			'Comments by author with ID'),
 		makeRouteDecription('/groups/id/1,2,3',
@@ -767,42 +617,7 @@ function makeRouteDecription($route, $desc) {
 	);
 }
 
-function setUp(APIResult &$content, $uri) {
-	$content->meta['up'] = getCurrentFileURL() . $uri;
-}
 
-function paginate(APIResult &$content) {
-	global $app;
-	$baseURL = getCurrentAPIURL();
-	$params = $app->request()->get();
-
-	if (isset($params['page'])) 
-		$page = $params['page'];
-	else {
-		$params['page'] = $page = 1;
-	}
-
-	if (!isset($params['perpage'])) 
-		$perPage = POSTS_DEFAULT_NUM;
-	else
-		$perPage = $params['perpage'];
-
-	if ($params['page'] <= 1)
-		$content->meta['prev'] = null;
-	else {
-		$params['page'] = $page-1;
-		$content->meta['prev'] = $baseURL.'?'.
-			http_build_query($params);
-	}
-
-	if (count($content->response) < $perPage)
-		$content->meta['next'] = null;
-	else {
-		$params['page'] = $page+1;
-		$content->meta['next'] = $baseURL.'?'.
-			http_build_query($params);
-	}
-}
 
 function output(APIResult $content) {
 	global $app;
@@ -815,30 +630,6 @@ function output(APIResult $content) {
 		$json = "$callback($json)";
 
 	echo $json;
-}
-
-// Array of APIPost objects
-function convertMarkdown(array &$apiPosts) {
-	global $app;
-	$format = $app->request()->get('format');
-
-	if (is_null($format))
-		$format = 'html';
-	else
-		$format = trim(strtolower($format));
-	
-	switch($format) {
-	case 'html':
-		foreach ($apiPosts as $apiPost)
-			$apiPost->content = markdown($apiPost->content);
-		break;
-	case 'md': 
-	case 'markdown':
-		break; // Do nothing
-	default:
-		$app->response()->status(400);
-		throw new APIError(1210); // Invalid format specified
-	}
 }
 
 function getUserId() {

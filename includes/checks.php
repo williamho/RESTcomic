@@ -105,3 +105,57 @@ function getCurrentFileURL() {
 	return $pageURL;
 }
 
+function setUp(APIResult &$content, $uri) {
+	$content->meta->up = getCurrentFileURL() . $uri;
+}
+
+function paginate(APIResult &$content,$perPage=0,$page=1,$desc=true) {
+	global $app;
+	$baseURL = getCurrentAPIURL();
+	$params = $app->request()->get();
+
+	if ($perPage <= 0)
+		$perPage = POSTS_DEFAULT_NUM;
+
+	$params = array('page'=>$page,'perpage'=>$perPage,'reverse'=>$desc);
+
+	if ($params['page'] <= 1)
+		$content->meta->prev = null;
+	else {
+		$params['page'] = $page-1;
+		$content->meta->prev = $baseURL.'?'.
+			http_build_query($params);
+	}
+
+	if (count($content->response) < $perPage)
+		$content->meta->next = null;
+	else {
+		$params['page'] = $page+1;
+		$content->meta->next = $baseURL.'?'.
+			http_build_query($params);
+	}
+}
+
+// Array of APIPost objects
+function convertMarkdown(array &$apiPosts) {
+	global $app;
+	$format = $app->request()->get('format');
+
+	if (is_null($format))
+		$format = 'html';
+	else
+		$format = trim(strtolower($format));
+	
+	switch($format) {
+	case 'html':
+		foreach ($apiPosts as $apiPost)
+			$apiPost->content = markdown($apiPost->content);
+		break;
+	case 'md': 
+	case 'markdown':
+		break; // Do nothing
+	default:
+		$app->response()->status(400);
+		throw new APIError(1210); // Invalid format specified
+	}
+}

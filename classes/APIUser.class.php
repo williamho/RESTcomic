@@ -7,6 +7,7 @@ class APIUser {
 	public $name;
 	public $website;
 	public $icon;
+	public $email;
 
 	function __construct($id, $group, $login, $name, $website, $email) 
 	{
@@ -15,6 +16,7 @@ class APIUser {
 		$this->login = (string)$login;
 		$this->name = (string)$name;
 		$this->website = (string)$website;
+		$this->email = (string)$email;
 		$this->icon = $this->getIcon($email);
 	}
 

@@ -37,6 +37,9 @@ function restcomic_autoload($class_name) {
 spl_autoload_register('restcomic_autoload');
 require_once API_PATH.'includes/checks.php';
 require_once API_PATH.'lib/php-markdown/markdown.php';
+require_once API_PATH.'routes/posts.php';
+require_once API_PATH.'routes/comments.php';
+require_once API_PATH.'routes/users.php';
 
 // Create new config object
 $config = new Config(SQL_TABLE_PREFIX);

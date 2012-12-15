@@ -12,15 +12,19 @@ class APIResult {
 			$this->response = array();
 		else
 			$this->response = $response;
+		$this->response = json_decode(json_encode($this->response));
+
 		if (is_null($meta))
 			$this->meta = self::defaultMeta();
 		else
 			$this->meta = $meta;
+		$this->meta = json_decode(json_encode($this->meta));
 
 		if (is_null($errors))
 			$this->errors = array();
 		else
 			$this->setErrors($errors);
+		$this->errors = json_decode(json_encode($this->errors));
 	}
 
 	public function setMeta($up,$prev=null,$next=null) {

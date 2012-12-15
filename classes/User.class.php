@@ -74,6 +74,7 @@ class User {
 		// Check name
 		if (!self::checkLength($this->name,'name'))
 			$errors->addError(1005); // name too long
+		$this->name = htmlspecialchars($this->name);
 		
 		// Check group
 		if (!is_int($this->group_id) && !ctype_digit($this->group_id))

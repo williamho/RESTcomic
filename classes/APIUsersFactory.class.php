@@ -2,7 +2,7 @@
 defined('API_PATH') or die('No direct script access.');
 
 class APIUsersFactory {
-	public static function getUserByLogin($login, $getGroup=true) {
+	public static function getUserByLogin($login, $getGroup=true, $getEmail=false) {
 		global $config, $db;
 		$query = "
 			SELECT u.user_id
@@ -18,7 +18,7 @@ class APIUsersFactory {
 		return self::getUsersByIds($userId,$getGroup);
 	}
 
-	public static function getUsersByIds($ids, $getGroup=true) {
+	public static function getUsersByIds($ids, $getGroup=true, $getEmail=false) {
 		global $db, $config;
 		$ids = (array)$ids;
 		$idString = intArrayToString($ids);
@@ -62,7 +62,7 @@ class APIUsersFactory {
 				);
 			}
 			else
-				$group = null;
+				$apiGroup = null;
 				
 			$apiUser = new APIUser(
 				$user->user_id,
@@ -73,6 +73,9 @@ class APIUsersFactory {
 				$user->email
 			);
 			
+			if (!$getEmail)
+				unset($apiUser->email);
+
 			if (!$getGroup)
 				unset($apiUser->group);
 

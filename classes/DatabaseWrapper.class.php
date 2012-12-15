@@ -7,8 +7,8 @@ class DatabaseWrapper {
 	public function __construct($server, $username, $password, $database) {
 		try {
 			$this->db = new PDO("mysql:host=$server;dbname=$database",
-							$username,$password);
-			$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+							$username,$password,array(PDO::ATTR_PERSISTENT => true));
+			//$this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		}
 		catch (PDOException $e) {
 			die($e->getMessage());
@@ -218,7 +218,7 @@ class DatabaseWrapper {
 			$errors->addError(1014); // New users must be in default group
 
 		// Check if group is valid
-		if (is_null($this->rowExists('groups','group_id',$user->group_id)))
+		if (!($this->rowExists('groups','group_id',$user->group_id)))
 			$errors->addError(1109); // Group doesn't exist
 
 		if (!$errors->isEmpty())
@@ -253,12 +253,14 @@ class DatabaseWrapper {
 
 		if (!$new) {
 			$query = "
-				SELECT *
+				SELECT COUNT(*)
 				FROM {$config->tables['posts']} p,
 					{$config->tables['comments']} c
 				WHERE p.post_id = c.post_id
+					AND p.post_id=:post_id
 			";
 			$stmt = $this->db->prepare($query);
+			$stmt->bindParam(':post_id',$post->post_id);
 			$stmt->execute();
 			$post->comment_count = $stmt->fetchColumn();
 		}
