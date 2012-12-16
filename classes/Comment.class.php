@@ -52,7 +52,7 @@ class Comment {
 		$this->visible = (bool)$this->visible;
 
 		// Set content
-		$this->content = (string)$this->content;
+		$this->content = htmlspecialchars((string)$this->content);
 
 		// Check parent comment ID
 		if (!is_int($this->parent_comment_id) && 

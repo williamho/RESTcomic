@@ -232,8 +232,6 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 		if ($content === '')
 			throw new APIError(1308); // comment empty
 
-		$content = htmlspecialchars($content);
-
 		// Check if post is commentable if user is not admin
 		$posts = $db->getObjectsFromTableByIds('posts',$post_id);
 
@@ -294,7 +292,7 @@ $app->get('/comments/id/:idList', function($idList) use($app) {
 	$page = $app->request()->get('page');
 	$desc = stringToBool($app->request()->get('reverse'));
 
-	$result = getCommentsById($idList,$perPage,$page,$desc);
+	$result = getCommentsByIds($idList,$perPage,$page,$desc);
 	output($result);
 });
 
@@ -476,11 +474,11 @@ $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 			throw new APIError(1306); // Invalid edit permissions
 			break;
 		case Group::PERM_EDIT_OWN:
-			$author = $db->getCommentAuthor();
+			$author = $db->getCommentAuthor($comment_id);
 			if ($author->user_id != $user->user_id)
 				throw new APIError(1306); 
 		case Group::PERM_EDIT_GROUP:
-			$author = $db->getCommentAuthor();
+			$author = $db->getCommentAuthor($comment_id);
 			if ($author->group_id != $user->group_id)
 				throw new APIError(1306); 
 		}

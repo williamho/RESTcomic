@@ -406,6 +406,7 @@ class DatabaseWrapper {
 	}
 
 	public function getCommentAuthor($comment_id) {
+		global $config;
 		if (!is_int($comment_id) && !ctype_digit($comment_id))
 			throw new APIError(1301); // Invalid comment ID
 
