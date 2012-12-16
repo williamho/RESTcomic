@@ -51,8 +51,11 @@ class Group {
 			$errors->addError(1103); // name w/ invalid chars
 
 		// Check color
-		if (is_string($this->color)) 
+		if (is_string($this->color)) {
+			if ($this->color == '')
+				$this->color = 0;
 			$this->color = hexdec($this->color);
+		}
 		else if (!is_int($this->color))
 			$errors->addError(1110); // Invalid color
 

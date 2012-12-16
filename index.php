@@ -152,7 +152,7 @@ $app->delete('/posts/id/:id', function($id) use($app) {
 $app->delete('/groups/id/:id', function($id) use($app) {
 	try {
 		global $db;
-		$user = APIOauth::validate();
+		$user = APIOAuth::validate();
 
 		if (!$user->admin)
 			throw new APIError(1111);
@@ -544,6 +544,7 @@ $app->put('/users/id/:user_id', function($user_id) {
 			$user->hashPassword();
 		}
 
+		checkOld($user,$oldUser);
 		// Can't assign users to unregistered group
 		if ($user->group_id == 0 && $user->user_id != 0)
 			throw new APIError(1017);
@@ -551,7 +552,6 @@ $app->put('/users/id/:user_id', function($user_id) {
 		if ($user->user_id == 0 && $user->group_id != 0)
 			throw new APIError(1018);
 
-		checkOld($user,$oldUser);
 		$user->login = $oldUser->login; // login cannot be changed
 
 		$db->insertObjectIntoTable($user,false);
@@ -570,8 +570,6 @@ $app->put('/groups/id/:group_id', function($group_id) {
 		$user = APIOAuth::validate();
 		if (!$user->admin)
 			throw new APIError(1111);
-
-		//$group_id = paramPut('group_id');//comment out
 
 		$oldGroup = $db->getObjectsFromTableByIds('groups',$group_id);
 		if (empty($oldGroup))
