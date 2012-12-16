@@ -131,7 +131,7 @@ $db->insertObjectIntoTable($regGroup);
 
 // Add unregistered user
 $unregUser = new User;
-$unregUser->setValues(0,2,'unregistered','Unregistered','unreguserpass');
+$unregUser->setValues(0,2,'unregistered','Anonymous','unreguserpass');
 $unregUser->hashPassword();
 $db->insertObjectIntoTable($unregUser);
 
@@ -140,11 +140,7 @@ $query = "UPDATE {$config->tables['users']} SET user_id=0 WHERE user_id=1";
 $db->executeQuery($query);
 $query = "ALTER TABLE {$config->tables['users']} AUTO_INCREMENT=1";
 $db->executeQuery($query);
-
-$query = "UPDATE {$config->tables['users']} SET api_key='' 
-	WHERE user_id=0";
-$db->executeQuery($query);
-$query = "UPDATE {$config->tables['users']} SET group_id=0 
+$query = "UPDATE {$config->tables['users']} SET api_key='', group_id=0 
 	WHERE user_id=0";
 $db->executeQuery($query);
 

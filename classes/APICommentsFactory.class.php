@@ -129,6 +129,7 @@ class APICommentsFactory {
 				{$config->tables['comments']} c 
 			WHERE u.user_id = :id
 				AND u.user_id = c.user_id
+			ORDER BY c.comment_id
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':id',$id);
@@ -154,6 +155,7 @@ class APICommentsFactory {
 				{$config->tables['comments']} c 
 			WHERE u.login = :login
 				AND u.user_id = c.user_id
+			ORDER BY c.comment_id
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':login',$login);
@@ -200,6 +202,7 @@ class APICommentsFactory {
 			LEFT JOIN {$config->tables['posts']} p on p.post_id = c.post_id
 			LEFT JOIN {$config->tables['groups']} g on g.group_id = u.group_id
 			WHERE c.post_id = :post_id
+			ORDER BY c.comment_id
 		";
 		$stmt = $db->prepare($query);
 		$stmt->bindParam(':post_id',$id);

@@ -7,6 +7,7 @@ class APIGroupsFactory {
 		$query = "
 			SELECT *
 			FROM {$config->tables['groups']}
+			ORDER BY group_id
 		";
 		$stmt = $db->prepare($query);
 		$stmt->execute();

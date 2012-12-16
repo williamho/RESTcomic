@@ -133,10 +133,12 @@ $app->delete('/posts/id/:id', function($id) use($app) {
 			$author = $db->getPostAuthor();
 			if ($author->user_id != $user->user_id)
 				throw new APIError(1207); 
+			break;
 		case Group::PERM_EDIT_GROUP:
 			$author = $db->getPostAuthor();
 			if ($author->group_id != $user->group_id)
 				throw new APIError(1207); 
+			break;
 		}
 		$db->deletePost($id);
 		$result = new APIResult();
@@ -227,7 +229,7 @@ $app->post('/posts/id/:post_id/comments', function($post_id) {
 		$content = paramPost('content');
 		$name = paramPost('name');
 		if ($user->user_id == 0 && $name == '')
-			$name = 'Anonymous';
+			$name = $user->name;
 
 		if ($content === '')
 			throw new APIError(1308); // comment empty
@@ -264,18 +266,20 @@ $app->delete('/comments/id/:id', function($id) use($app) {
 		global $db;
 		$user = APIOAuth::validate();
 
-		switch($user->edit_post) {
+		switch($user->edit_comment) {
 		case Group::PERM_EDIT_NONE:
 			throw new APIError(1306); // Invalid edit permissions
 			break;
 		case Group::PERM_EDIT_OWN:
-			$author = $db->getCommentAuthor();
+			$author = $db->getCommentAuthor($id);
 			if ($author->user_id != $user->user_id)
 				throw new APIError(1306); 
+			break;
 		case Group::PERM_EDIT_GROUP:
-			$author = $db->getCommentAuthor();
+			$author = $db->getCommentAuthor($id);
 			if ($author->group_id != $user->group_id)
 				throw new APIError(1306); 
+			break;
 		}
 		$db->deleteComment($id);
 		$result = new APIResult();
@@ -408,7 +412,6 @@ function checkOld(&$new, &$old) {
 	}
 }
 
-//$app->put('/posts', function() use($app) {
 $app->put('/posts/id/:post_id', function($post_id) use($app) {
 	// Replace a post
 	try {
@@ -423,10 +426,12 @@ $app->put('/posts/id/:post_id', function($post_id) use($app) {
 			$author = $db->getPostAuthor($post_id);
 			if ($author->user_id != $user->user_id)
 				throw new APIError(1207); 
+			break;
 		case Group::PERM_EDIT_GROUP:
 			$author = $db->getPostAuthor($post_id);
 			if ($author->group_id != $user->group_id)
 				throw new APIError(1207); 
+			break;
 		}
 
 		//$post_id = paramPut('post_id'); // comment out
@@ -461,14 +466,13 @@ $app->put('/posts/id/:post_id', function($post_id) use($app) {
 	output($result);
 });
 
-//$app->put('/comments',function() use($app) {
 $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 	// Replace comment
 	try {
 		global $db;
 		$user = APIOAuth::validate();
 
-		switch($user->edit_post) {
+		switch($user->edit_comment) {
 		case Group::PERM_EDIT_NONE:
 			throw new APIError(1306); // Invalid edit permissions
 			break;
@@ -476,10 +480,12 @@ $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 			$author = $db->getCommentAuthor($comment_id);
 			if ($author->user_id != $user->user_id)
 				throw new APIError(1306); 
+			break;
 		case Group::PERM_EDIT_GROUP:
 			$author = $db->getCommentAuthor($comment_id);
 			if ($author->group_id != $user->group_id)
 				throw new APIError(1306); 
+			break;
 		}
 
 		//$comment_id = paramPut('comment_id'); // comment out
@@ -505,7 +511,6 @@ $app->put('/comments/id/:comment_id',function($comment_id) use($app) {
 	output($result);
 });
 
-//$app->put('/users', function() {
 $app->put('/users/id/:user_id', function($user_id) {
 	try {
 		global $db;
@@ -539,6 +544,13 @@ $app->put('/users/id/:user_id', function($user_id) {
 			$user->hashPassword();
 		}
 
+		// Can't assign users to unregistered group
+		if ($user->group_id == 0 && $user->user_id != 0)
+			throw new APIError(1017);
+		// Can't change group of unregistered user
+		if ($user->user_id == 0 && $user->group_id != 0)
+			throw new APIError(1018);
+
 		checkOld($user,$oldUser);
 		$user->login = $oldUser->login; // login cannot be changed
 
@@ -552,7 +564,6 @@ $app->put('/users/id/:user_id', function($user_id) {
 	output($result);
 });
 
-//$app->put('/groups', function() {
 $app->put('/groups/id/:group_id', function($group_id) {
 	try {
 		global $db;
