@@ -423,11 +423,11 @@ $app->put('/posts/id/:post_id', function($post_id) use($app) {
 			throw new APIError(1207); // Invalid edit permissions
 			break;
 		case Group::PERM_EDIT_OWN:
-			$author = $db->getPostAuthor();
+			$author = $db->getPostAuthor($post_id);
 			if ($author->user_id != $user->user_id)
 				throw new APIError(1207); 
 		case Group::PERM_EDIT_GROUP:
-			$author = $db->getPostAuthor();
+			$author = $db->getPostAuthor($post_id);
 			if ($author->group_id != $user->group_id)
 				throw new APIError(1207); 
 		}
@@ -454,6 +454,10 @@ $app->put('/posts/id/:post_id', function($post_id) use($app) {
 		setUp($result,'/posts');
 		convertMarkdown($result->response);
 	}
+	//catch(Exception $e) {
+		//$a = array('errors' => array($e->getMessage(),$e->getLine(), $e->getFile()));
+		//die(json_encode($a));
+	//}
 	catch(APIError $e) { 
 		$result = new APIResult(null,$e); 
 	}

@@ -386,7 +386,8 @@ class DatabaseWrapper {
 	}
 
 	public function getPostAuthor($post_id) {
-		if (!is_int($id) || !ctype_digit($id))
+		global $config;
+		if (!is_int($post_id) && !ctype_digit($post_id))
 			throw new APIError(1201); // Invalid post ID
 
 		$query = "
@@ -405,7 +406,7 @@ class DatabaseWrapper {
 	}
 
 	public function getCommentAuthor($comment_id) {
-		if (!is_int($id) || !ctype_digit($id))
+		if (!is_int($comment_id) && !ctype_digit($comment_id))
 			throw new APIError(1301); // Invalid comment ID
 
 		$query = "
