@@ -359,6 +359,8 @@ $app->post('/users', function() {
 	output($result);
 });
 
+
+
 $app->post('/groups', function() {
 	try {
 		global $db;
@@ -388,15 +390,12 @@ $app->post('/groups', function() {
 });
 
 $app->get('/groups/id/:idList', function($idList) {
-	try {
-		$ids = explode(',',$idList);
-		$groups = APIGroupsFactory::getGroupsByIds($ids);
-		$result = new APIResult($groups);
-		setUp($result,'/groups');
-	}
-	catch(APIError $e) { 
-		$result = new APIResult(null,$e); 
-	}
+	$result = getGroupsByIds($idList);
+	output($result);
+});
+
+$app->get('/groups', function() {
+	$result = getGroups();
 	output($result);
 });
 

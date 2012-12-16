@@ -40,6 +40,7 @@ require_once API_PATH.'lib/php-markdown/markdown.php';
 require_once API_PATH.'routes/posts.php';
 require_once API_PATH.'routes/comments.php';
 require_once API_PATH.'routes/users.php';
+require_once API_PATH.'routes/groups.php';
 
 // Create new config object
 $config = new Config(SQL_TABLE_PREFIX);

@@ -272,16 +272,5 @@ class APICommentsFactory {
 			'down' => getCurrentFileURL() . "/posts/id/$postId/comments"
 		);
 	}
-
-	public static function getCommentInfoByPostIds($id) {
-		global $db;
-		$ids = (array)$ids;
-		$commentsInfo = array();
-
-		foreach ($ids as $id) {
-
-		}
-	}
-
 }
 

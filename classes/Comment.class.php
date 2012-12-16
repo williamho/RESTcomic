@@ -47,6 +47,8 @@ class Comment {
 		// Check name
 		if (!self::checkLength($this->name,'name'))
 			$errors->addError(1302); // name too long
+		if (is_null($this->name))
+			$this->name = '';
 	
 		// Set visible
 		$this->visible = (bool)$this->visible;
