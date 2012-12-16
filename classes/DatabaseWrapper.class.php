@@ -200,7 +200,7 @@ class DatabaseWrapper {
 	private function validateGroup(Group $group, $new=true) {
 		// Check if group name already exists
 		if ($index = $this->rowExists('groups','name',$group->name)) {
-			if ($index != $group->group_id)
+			if (!is_null($index) && $index != $group->group_id)
 				throw new APIError(1108); // group name already exists
 		}
 		return null;
@@ -280,18 +280,21 @@ class DatabaseWrapper {
 		if (is_null($this->rowExists('users','user_id',$comment->user_id)))
 			$errors->addError(1009); // User doesn't exist
 
-		// Check if post is valid
-		if (!$this->rowExists('posts','post_id',(int)$comment->post_id))
-			$errors->addError(1205); // Post doesn't exist
-
 		// Check if parent comment is valid
 		if ($comment->parent_comment_id) {
 			if (!$this->rowExists('comments','comment_id',
 					$comment->parent_comment_id)) {
 				$errors->addError(1304); // Parent comment doesn't exist
 			}
+			$comments = self::getObjectsFromTableByIds('comments',
+				$comment->parent_comment_id);
+			$comment->post_id = $comments[0]->post_id;
 		}
-		else 
+		// Check if post is valid
+		elseif (!$this->rowExists('posts','post_id',(int)$comment->post_id)) {
+			$errors->addError(1205); // Post doesn't exist
+		}
+		else
 			$comment->parent_comment_id = 0;
 			
 		if (!$errors->isEmpty())
